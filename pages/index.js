@@ -13,7 +13,7 @@ const bodyHTML = `
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <div class="flex items-center cursor-pointer" onclick="filterCategory('All');scrollToTop()">
-            <img src="/img/logo.png" alt="Trendy by Gla" class="h-16 w-auto object-contain" style="mix-blend-mode:multiply"
+            <img src="/img/logo.png" alt="Trendy by Gla" class="h-18 w-auto object-contain" style="mix-blend-mode:multiply"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="hidden items-center gap-1">
                 <span class="text-xl font-serif italic font-bold text-brand-pink">by</span>
