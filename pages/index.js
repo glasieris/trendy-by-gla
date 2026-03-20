@@ -29,19 +29,17 @@ const bodyHTML = `
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div class="absolute top-full left-0 mt-1 bg-white border border-pink-100 rounded-xl shadow-lg py-2 min-w-[200px] hidden group-hover:block z-50">
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Cabello');return false">Accesorios para el cabello</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Oro Laminado');return false">Accesorios oro laminado</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Neceser');return false">Neceser</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Llaveros');return false">Llaveros</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Descuentos');return false">Descuentos</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Sets');return false">Sets para regalar</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Satin');return false">Accesorios de Satín</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Oro Laminado');return false">Oro Laminado</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Sets');return false">Set para Regalar</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Ultimos');return false">Últimos Disponibles</a>
                 </div>
             </div>
             <a href="#" class="text-sm font-semibold text-gray-700 hover:text-brand-pink transition-colors" onclick="filterCategory('Al Mayor');return false">AL MAYOR</a>
             <a href="#quienes-somos" class="text-sm font-semibold text-gray-700 hover:text-brand-pink transition-colors">CONTACTO</a>
         </nav>
         <button onclick="openCart()" class="relative p-2 text-gray-700 hover:text-brand-pink transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 7H4l1-7zM10 14v4m4-4v4"/></svg>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             <span id="cart-badge" class="absolute -top-1 -right-1 bg-brand-pink text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
         </button>
     </div>
@@ -57,12 +55,10 @@ const bodyHTML = `
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div id="mobile-categories" class="hidden pl-4 space-y-1">
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Cabello');toggleMobileMenu();return false">Accesorios para el cabello</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Oro Laminado');toggleMobileMenu();return false">Accesorios oro laminado</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Neceser');toggleMobileMenu();return false">Neceser</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Llaveros');toggleMobileMenu();return false">Llaveros</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Descuentos');toggleMobileMenu();return false">Descuentos</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Sets');toggleMobileMenu();return false">Sets para regalar</a>
+                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Satin');toggleMobileMenu();return false">Accesorios de Satín</a>
+                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Oro Laminado');toggleMobileMenu();return false">Oro Laminado</a>
+                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Sets');toggleMobileMenu();return false">Set para Regalar</a>
+                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Ultimos');toggleMobileMenu();return false">Últimos Disponibles</a>
             </div>
         </div>
         <a href="#" class="block py-2 text-sm font-semibold text-gray-700" onclick="filterCategory('Al Mayor');toggleMobileMenu();return false">AL MAYOR</a>
@@ -81,7 +77,7 @@ const bodyHTML = `
                 Accesorios trendy<br>para cada momento
             </h1>
             <p class="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
-                Satén, maquillaje, joyería y más. Todo lo que necesitas para verte y sentirte increíble, al mayor y detal con envío a todo el país.
+                Todo lo que necesitas para verte y sentirte increíble, al mayor y detal con envío a todo el país.
             </p>
             <div class="flex flex-wrap gap-3">
                 <button onclick="filterCategory('All');document.getElementById('catalog-section').scrollIntoView({behavior:'smooth'})"
@@ -112,8 +108,8 @@ const bodyHTML = `
                 <svg class="w-5 h-5 text-brand-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
             <div>
-                <div class="font-bold text-gray-800 text-sm">Activa Precios al Mayor!</div>
-                <div class="text-gray-500 text-xs mt-0.5">Desde 6 unidades en productos de cabello o compras mayores a $70 en cualquier producto.</div>
+                <div class="font-bold text-gray-800 text-sm">¡Activa Precios al Mayor!</div>
+                <div class="text-gray-500 text-xs mt-0.5">Desde 6 unidades en productos de cabello con envíos a todo el país.</div>
             </div>
         </div>
         <div id="mayor-status-badge" class="flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium whitespace-nowrap flex-shrink-0">
@@ -178,8 +174,7 @@ const bodyHTML = `
                     Hecho con amor,<br>
                     <span class="text-brand-pink italic">pensado para ti.</span>
                 </h2>
-                <p class="text-gray-600 text-sm leading-relaxed mb-3">Somos una marca venezolana de accesorios de satén, maquillaje y productos trendy. Nacimos con una misión simple: que cada mujer se vea increíble con accesorios de calidad a precios accesibles, al mayor y detal.</p>
-                <p class="text-gray-600 text-sm leading-relaxed mb-6">Envíos a todo el país a tasa BCV. Desde scrunchies hasta gorros y fundas de almohada, cada pieza está pensada para ti.</p>
+                <p class="text-gray-600 text-sm leading-relaxed mb-6">Nuestra marca nació para las chicas que saben que los detalles marcan la diferencia. En un mundo que siempre nos pide más, nosotras elegimos celebrar lo que ya eres. Por eso, cada producto está diseñado para consentirte; creamos una selección en oro laminado y esenciales de satín para elevar tu look y tu confianza con accesorios de calidad a precios accesibles.</p>
                 <div class="flex gap-8 mb-6">
                     <div>
                         <div class="text-3xl font-extrabold text-brand-pink leading-none">5+</div>
@@ -228,7 +223,7 @@ const bodyHTML = `
                         <span class="font-serif font-bold text-gray-800 text-xl">Gla</span>
                     </div>
                 </div>
-                <p class="text-gray-500 text-sm leading-relaxed">Accesorios de satén, maquillaje y productos trendy. Ventas al mayor y detal.</p>
+                <p class="text-gray-500 text-sm leading-relaxed">Todo lo que necesitas para verte y sentirte increíble, al mayor y detal con envío a todo el país.</p>
             </div>
             <div>
                 <h4 class="font-bold text-gray-800 mb-5 text-xs uppercase tracking-widest">Enlaces</h4>
@@ -286,12 +281,18 @@ const bodyHTML = `
     <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM11.997 2C6.477 2 2 6.477 2 11.997c0 1.769.463 3.43 1.27 4.872L2 22l5.27-1.237A9.965 9.965 0 0011.997 22C17.517 22 22 17.523 22 12.003 22 6.477 17.517 2 11.997 2z"/></svg>
 </a>
 
+<!-- ===== FLOATING CART BUTTON ===== -->
+<button onclick="openCart()" id="cart-float-btn" class="fixed bottom-24 right-6 z-[99] bg-brand-pink text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform hidden">
+    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    <span id="cart-float-badge" class="absolute -top-1 -right-1 bg-white text-brand-pink text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
+</button>
+
 <!-- ===== CART DRAWER ===== -->
 <div id="cart-backdrop" class="fixed inset-0 bg-black/40 z-50 hidden modal-backdrop" onclick="closeCart()"></div>
 <div id="cart-drawer" class="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-[60] transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="flex items-center justify-between p-4 border-b border-pink-100">
         <h2 class="font-bold text-lg flex items-center gap-2">
-            <svg class="w-5 h-5 text-brand-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 7H4l1-7zM10 14v4m4-4v4"/></svg>
+            <svg class="w-5 h-5 text-brand-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             Tu Carrito
         </h2>
         <button onclick="closeCart()" class="p-2 hover:bg-gray-100 rounded-full">
@@ -361,7 +362,6 @@ const bodyHTML = `
                     <h3 class="font-bold text-base mb-3 text-brand-pink">👤 Datos Personales</h3>
                     <div class="space-y-3">
                         <input id="co-name" type="text" placeholder="Nombre y Apellido *" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
-                        <input id="co-email" type="email" placeholder="Correo electrónico * (para recibir tu confirmación)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                         <input id="co-phone" type="tel" placeholder="Teléfono WhatsApp *" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                     </div>
                 </div>
@@ -465,7 +465,7 @@ const bodyHTML = `
                     </svg>
                 </div>
                 <h2 class="font-serif text-3xl font-bold text-gray-900 mb-2">¡Pedido Confirmado!</h2>
-                <p class="text-gray-500 mb-2">Te enviamos la confirmación a tu correo electrónico. 💕</p>
+                <p class="text-gray-500 mb-2">Tu pedido ha sido recibido. Te contactaremos pronto. 💕</p>
                 <div id="success-order-num" class="inline-block bg-brand-pink/10 text-brand-pink font-bold px-4 py-1.5 rounded-full text-sm">#GLA-0000</div>
             </div>
             <div class="px-8 pb-8">
@@ -484,14 +484,10 @@ const bodyHTML = `
                         <div class="space-y-3">
                             <div class="flex gap-3">
                                 <span class="w-7 h-7 bg-brand-pink text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                                <p class="text-sm text-gray-600">Revisa tu correo electrónico para ver la confirmación de tu pedido.</p>
+                                <p class="text-sm text-gray-600">Te contactaremos por WhatsApp para confirmar disponibilidad y enviarte detalles del pago.</p>
                             </div>
                             <div class="flex gap-3">
                                 <span class="w-7 h-7 bg-brand-pink text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                                <p class="text-sm text-gray-600">Te contactaremos por WhatsApp para confirmar disponibilidad y detalles del pago.</p>
-                            </div>
-                            <div class="flex gap-3">
-                                <span class="w-7 h-7 bg-brand-pink text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
                                 <p class="text-sm text-gray-600">Una vez confirmado el pago, preparamos tu pedido con mucho amor. 💕</p>
                             </div>
                         </div>
@@ -500,7 +496,7 @@ const bodyHTML = `
                 <div class="border-2 border-dashed border-brand-pink/40 rounded-2xl p-4 bg-brand-light/30 text-center mb-6">
                     <div class="text-2xl mb-1">🎁</div>
                     <p class="font-semibold text-brand-pink text-sm mb-1">¡Comparte y gana!</p>
-                    <p class="text-xs text-gray-600">Recomienda Trendy by Gla Accesorios a tus amigas y obtén un <strong>10% de descuento</strong> en tu próxima compra.</p>
+                    <p class="text-xs text-gray-600">Etiquétanos en historias con tu producto Trendy y obtén un <strong>10% de descuento</strong> en tu próxima compra.</p>
                 </div>
                 <div class="flex items-center justify-center gap-4 mb-6">
                     <a href="https://www.instagram.com/Trendybygla" target="_blank" class="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-pink transition-colors">
