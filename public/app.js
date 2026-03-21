@@ -1,9 +1,9 @@
 // ===== CONFIG =====
-const BCV_RATE = 443.26;
+let BCV_RATE = 443.26;
 const CART_KEY = 'gla_cart_v3';
 
 // ===== FABRICS =====
-const fabrics = [
+let fabrics = [
     {name:'Rosa Pastel', hex:'#FBCFE8'},
     {name:'Negro Profundo', hex:'#1F2937'},
     {name:'Champagne', hex:'#F5E6C8'},
@@ -16,8 +16,8 @@ const fabrics = [
 ];
 
 // ===== CATEGORIES =====
-const categories = ['All', 'Satin', 'Oro Laminado', 'Sets', 'Ultimos'];
-const categoryLabels = {
+let categories = ['All', 'Satin', 'Oro Laminado', 'Sets', 'Ultimos'];
+let categoryLabels = {
     'All': 'Todos',
     'Satin': 'Accesorios de Satín',
     'Oro Laminado': 'Oro Laminado',
@@ -26,7 +26,7 @@ const categoryLabels = {
     'Al Mayor': 'Al Mayor'
 };
 
-const categoryDescriptions = {
+let categoryDescriptions = {
     'Satin': 'Accesorios de satén premium para el cuidado y estilo de tu cabello.',
     'Oro Laminado': 'Joyería de oro laminado elegante para complementar cualquier look.',
     'Sets': 'Sets curados para regalar, ideales para cualquier ocasión.',
@@ -34,49 +34,33 @@ const categoryDescriptions = {
 };
 
 // ===== PRODUCTS =====
-const products = [
-    // Accesorios de Satín
-    {id:'s1',  name:'Bandanas Grandes',          category:'Satin',        is_hair:false, has_fabrics:true,  price_detal:6.50,  price_mayor:6.00,  min_mayor:6,   description:'Bandana de tela satinada, medida 1m x 1m'},
-    {id:'s2',  name:'Bandanas Pequeñas',         category:'Satin',        is_hair:false, has_fabrics:true,  price_detal:9.50,  price_mayor:9.00,  min_mayor:6,   description:'Bandana de tela satinada, medida 60cm x 60cm'},
-    {id:'s3',  name:'Llavero Satinado',          category:'Satin',        is_hair:false, has_fabrics:true,  price_detal:4.50,  price_mayor:4.20,  min_mayor:6,   description:'Llavero de tela con cancamo de metal'},
-    {id:'s4',  name:'Maxi Scrunchies',           category:'Satin',        is_hair:true,  has_fabrics:true,  price_detal:2.00,  price_mayor:1.60,  min_mayor:24,  description:'Maxiscrunchies de tela satinada'},
-    {id:'s5',  name:'Tubo de Ondas',             category:'Satin',        is_hair:false, has_fabrics:false, price_detal:10.50, price_mayor:9.50,  min_mayor:6,   description:'Tubo de tela satinada para hacer ondas en el cabello sin calor'},
-    {id:'s6',  name:'Scrunchies',                category:'Satin',        is_hair:true,  has_fabrics:true,  price_detal:1.50,  price_mayor:1.20,  min_mayor:24,  description:'Scrunchies de tela satinada'},
-    {id:'s7',  name:'Gorro Satinado',            category:'Satin',        is_hair:false, has_fabrics:true,  price_detal:10.50, price_mayor:9.50,  min_mayor:6,   description:'Gorro reversible de tela satinada con elástica'},
-    {id:'s8',  name:'Neceser Satinado',          category:'Satin',        is_hair:false, has_fabrics:false, price_detal:8.00,  price_mayor:7.50,  min_mayor:6,   description:'Neceser grande de tela'},
-    {id:'s9',  name:'Fundas de Almohada',        category:'Satin',        is_hair:false, has_fabrics:true,  price_detal:8.00,  price_mayor:7.70,  min_mayor:6,   description:'Fundas de almohada con tela satinada'},
-    // Oro Laminado
-    {id:'o1',  name:'Zarcillos',                 category:'Oro Laminado', is_hair:false, has_fabrics:false, price_detal:5.00,  price_mayor:5.00,  min_mayor:999, description:'Zarcillos de acero'},
-    {id:'o2',  name:'Cadenas',                   category:'Oro Laminado', is_hair:false, has_fabrics:false, price_detal:6.00,  price_mayor:6.00,  min_mayor:999, description:'Cadenas de oro laminado'},
-    // Set para Regalar
-    {id:'g1',  name:'Caja de Regalo 6$',         category:'Sets',         is_hair:false, has_fabrics:false, price_detal:6.00,  price_mayor:6.00,  min_mayor:999, description:'Incluye mascarilla, lip balm, lápiz de labio, scrunchie'},
-    {id:'g2',  name:'Caja de Regalo 10,50$',     category:'Sets',         is_hair:false, has_fabrics:false, price_detal:10.50, price_mayor:10.50, min_mayor:999, description:'Incluye rubor, pinza para el cabello, labial, scrunchie, lápiz delineador'},
-    {id:'g3',  name:'Caja de Regalo 14$',        category:'Sets',         is_hair:false, has_fabrics:false, price_detal:14.00, price_mayor:14.00, min_mayor:999, description:'Incluye set de sombras, rubor, labial, lápiz delineador, scrunchie'},
-    {id:'g4',  name:'Caja de Regalo 19$',        category:'Sets',         is_hair:false, has_fabrics:false, price_detal:19.00, price_mayor:19.00, min_mayor:999, description:'Incluye antibacterial, crema para manos, labial, rímel, rubor, scrunchie'},
-    // Últimos Disponibles
-    {id:'u1',  name:'Ahorradores',               category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:5.00,  price_mayor:5.00,  min_mayor:999, description:''},
-    {id:'u2',  name:'Antibacterial',             category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:5.50,  price_mayor:5.50,  min_mayor:999, description:'Antibacterial marca Bath & Body works'},
-    {id:'u3',  name:'Base',                      category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.00,  price_mayor:3.00,  min_mayor:999, description:'Base mouse marca Trendy'},
-    {id:'u4',  name:'Cintillo Skincare',         category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.80,  price_mayor:3.80,  min_mayor:999, description:'Cintillo de tela para skincare'},
-    {id:'u5',  name:'Corrector',                 category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:4.00,  price_mayor:4.00,  min_mayor:999, description:'Corrector liquido para ojeras'},
-    {id:'u6',  name:'Crema de Manos',            category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.00,  price_mayor:3.00,  min_mayor:999, description:''},
-    {id:'u7',  name:'Delineadores de Colores',   category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:1.00,  price_mayor:1.00,  min_mayor:999, description:'Delineadores para ojos líquidos de colores'},
-    {id:'u8',  name:'Diadema',                   category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:1.00,  price_mayor:1.00,  min_mayor:999, description:'Diadema de tela satinada pequeña para niñas'},
-    {id:'u9',  name:'Espejo',                    category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:1.50,  price_mayor:1.50,  min_mayor:999, description:'Espejo doble circular ideal para cartera'},
-    {id:'u10', name:'Labiales',                  category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:2.00,  price_mayor:2.00,  min_mayor:999, description:''},
-    {id:'u11', name:'Mascarillas',               category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:0.95,  price_mayor:0.95,  min_mayor:999, description:''},
-    {id:'u12', name:'Pinza de Pestaña',          category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:2.00,  price_mayor:2.00,  min_mayor:999, description:'Pinza para pegar pestañas postizas marca Trendy'},
-    {id:'u13', name:'Pinzas',                    category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.00,  price_mayor:3.00,  min_mayor:999, description:'Pinzas de plástico para el cabello'},
-    {id:'u14', name:'Polvo',                     category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:4.00,  price_mayor:4.00,  min_mayor:999, description:''},
-    {id:'u15', name:'Polvo de Hada',             category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:4.00,  price_mayor:4.00,  min_mayor:999, description:''},
-    {id:'u16', name:'Rímel',                     category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:4.00,  price_mayor:4.00,  min_mayor:999, description:''},
-    {id:'u17', name:'Set de Brochas',            category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.50,  price_mayor:3.50,  min_mayor:999, description:'Set viajero completo de brochas para maquillaje'},
-    {id:'u18', name:'Sombra Líquida',            category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.00,  price_mayor:3.00,  min_mayor:999, description:'Sombra liquida brillante'},
-    {id:'u19', name:'Tazas',                     category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.00,  price_mayor:3.00,  min_mayor:999, description:''},
-    {id:'u20', name:'Toallitas Desmaquillantes', category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:2.50,  price_mayor:2.50,  min_mayor:999, description:''},
-    {id:'u21', name:'Paletas',                   category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:4.00,  price_mayor:4.00,  min_mayor:999, description:''},
-    {id:'u22', name:'Rubor',                     category:'Ultimos',      is_hair:false, has_fabrics:false, price_detal:3.00,  price_mayor:3.00,  min_mayor:999, description:''},
-];
+let products = [];
+
+// ===== LOAD CONFIG FROM API =====
+async function initApp() {
+    try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+            const data = await res.json();
+            BCV_RATE = data.bcv_rate || BCV_RATE;
+            if (data.fabrics && data.fabrics.length) fabrics = data.fabrics;
+            if (data.products && data.products.length) products = data.products;
+            if (data.categories && data.categories.length) {
+                categories = ['All', ...data.categories.map(c => c.slug)];
+                categoryLabels = { 'All': 'Todos', 'Al Mayor': 'Al Mayor' };
+                categoryDescriptions = {};
+                data.categories.forEach(c => {
+                    categoryLabels[c.slug] = c.label;
+                    categoryDescriptions[c.slug] = c.description || '';
+                });
+            }
+        }
+    } catch(e) {
+        console.warn('Using fallback data:', e);
+    }
+    renderCategoryPills();
+    renderProducts();
+}
 
 // ===== STATE =====
 let cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
@@ -137,7 +121,7 @@ function renderCategoryPills() {
 
 // ===== PRODUCTS RENDERING =====
 function getProductImage(p) {
-    return `/img/products/${p.id}.jpg`;
+    return p.image_url || `/img/products/${p.id}.jpg`;
 }
 
 function getCategoryEmoji(cat) {
@@ -150,7 +134,7 @@ function getCategoryEmoji(cat) {
 function renderProducts() {
     let list = currentCategory === 'All' ? products
         : currentCategory === 'Al Mayor' ? products
-        : products.filter(p => p.category === currentCategory);
+        : products.filter(p => p.category === currentCategory || p.category_slug === currentCategory);
 
     document.getElementById('catalog-title').textContent = currentCategory === 'All' ? 'Todos los Productos'
         : currentCategory === 'Al Mayor' ? 'Precios Al Mayor'
@@ -164,23 +148,24 @@ function renderProducts() {
     document.getElementById('product-count').textContent = `${list.length} producto${list.length !== 1 ? 's' : ''}`;
 
     document.getElementById('product-grid').innerHTML = list.map(p => {
+        const cat = p.category || p.category_slug || '';
         const mayorBadge = currentCategory === 'Al Mayor'
-            ? `<div class="text-xs text-green-700 font-medium">Mayor: $${p.price_mayor.toFixed(2)} (${p.min_mayor}+ uds)</div>`
-            : `<div class="text-xs text-gray-400">Mayor: $${p.price_mayor.toFixed(2)} · ${p.min_mayor}+ uds</div>`;
-        const bsPrice = (p.price_detal * BCV_RATE).toFixed(0);
+            ? `<div class="text-xs text-green-700 font-medium">Mayor: $${Number(p.price_mayor).toFixed(2)} (${p.min_mayor}+ uds)</div>`
+            : `<div class="text-xs text-gray-400">Mayor: $${Number(p.price_mayor).toFixed(2)} · ${p.min_mayor}+ uds</div>`;
+        const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
         return `
         <div class="product-card bg-white rounded-2xl shadow-md overflow-hidden group flex flex-col">
             <div class="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer" onclick="openDetailModal('${p.id}')">
                 <img src="${getProductImage(p)}" alt="${p.name}" class="product-img w-full h-full object-cover"
                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="hidden w-full h-full items-center justify-center bg-gradient-to-br from-brand-light to-pink-200 text-4xl">
-                    ${getCategoryEmoji(p.category)}
+                    ${getCategoryEmoji(cat)}
                 </div>
             </div>
             <div class="p-3 flex flex-col flex-1">
-                <span class="text-xs text-brand-pink font-medium mb-1">${categoryLabels[p.category] || p.category}</span>
+                <span class="text-xs text-brand-pink font-medium mb-1">${categoryLabels[cat] || cat}</span>
                 <h3 class="font-semibold text-sm text-gray-800 mb-1 leading-tight flex-1">${p.name}</h3>
-                <div class="text-brand-pink font-bold text-base">$${p.price_detal.toFixed(2)} <span class="text-xs font-normal text-gray-500">Detal</span></div>
+                <div class="text-brand-pink font-bold text-base">$${Number(p.price_detal).toFixed(2)} <span class="text-xs font-normal text-gray-500">Detal</span></div>
                 ${mayorBadge}
                 <div class="text-xs text-gray-400 mb-3">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs</div>
                 <button onclick="quickAdd('${p.id}')" class="w-full bg-gray-900 text-white py-2 rounded-xl text-xs font-bold hover:bg-brand-pink transition-colors">
@@ -257,7 +242,8 @@ function addToCart(p, qty, color) {
     if (existing) {
         existing.qty += qty;
     } else {
-        cart.push({ key, id: p.id, name: p.name, category: p.category, is_hair: p.is_hair, has_fabrics: p.has_fabrics, price_detal: p.price_detal, price_mayor: p.price_mayor, min_mayor: p.min_mayor, qty, color });
+        const cat = p.category || p.category_slug || '';
+        cart.push({ key, id: p.id, name: p.name, category: cat, is_hair: p.is_hair, has_fabrics: p.has_fabrics, price_detal: Number(p.price_detal), price_mayor: Number(p.price_mayor), min_mayor: p.min_mayor, qty, color });
     }
     saveCart();
     renderCart();
@@ -298,9 +284,9 @@ function renderCart() {
     }
     el.innerHTML = itemsWithPrice.map(item => `
         <div class="flex gap-3 bg-gray-50 rounded-xl p-3">
-            <img src="/img/products/${item.id}.jpg" alt="${item.name}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+            <img src="${getProductImage(products.find(p=>p.id===item.id) || item)}" alt="${item.name}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="hidden w-14 h-14 rounded-lg bg-brand-light items-center justify-center text-xl flex-shrink-0">${getCategoryEmoji(products.find(p=>p.id===item.id)?.category||'')}</div>
+            <div class="hidden w-14 h-14 rounded-lg bg-brand-light items-center justify-center text-xl flex-shrink-0">${getCategoryEmoji(item.category||'')}</div>
             <div class="flex-1 min-w-0">
                 <div class="font-semibold text-sm truncate">${item.name}</div>
                 ${item.color ? `<div class="text-xs text-gray-500">${item.color}</div>` : ''}
@@ -345,12 +331,15 @@ function openCart() {
     document.getElementById('cart-backdrop').classList.remove('hidden');
     document.getElementById('cart-drawer').style.transform = 'translateX(0)';
     document.body.style.overflow = 'hidden';
+    const floatBtn = document.getElementById('cart-float-btn');
+    if (floatBtn) floatBtn.classList.add('hidden');
 }
 
 function closeCart() {
     document.getElementById('cart-backdrop').classList.add('hidden');
     document.getElementById('cart-drawer').style.transform = 'translateX(100%)';
     document.body.style.overflow = '';
+    updateCartFloat();
 }
 
 // ===== PRODUCT DETAIL MODAL =====
@@ -361,7 +350,8 @@ function openDetailModal(id) {
     detailQty = 1;
     detailColor = null;
 
-    const bsPrice = (p.price_detal * BCV_RATE).toFixed(0);
+    const cat = p.category || p.category_slug || '';
+    const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
     const swatchsHtml = p.has_fabrics ? `
         <div class="mb-4">
             <div class="text-sm font-semibold text-gray-700 mb-2">Color / Tela:</div>
@@ -377,7 +367,7 @@ function openDetailModal(id) {
         </div>
     ` : '';
 
-    const description = p.description || categoryDescriptions[p.category] || 'Producto de alta calidad, ideal para complementar tu estilo.';
+    const description = p.description || categoryDescriptions[cat] || 'Producto de alta calidad, ideal para complementar tu estilo.';
 
     document.getElementById('detail-content').innerHTML = `
         <div class="flex flex-col md:flex-row gap-6">
@@ -386,20 +376,20 @@ function openDetailModal(id) {
                     <img src="${getProductImage(p)}" alt="${p.name}" class="w-full h-full object-cover"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <div class="hidden w-full h-full items-center justify-center bg-brand-light text-6xl">
-                        ${getCategoryEmoji(p.category)}
+                        ${getCategoryEmoji(cat)}
                     </div>
                 </div>
                 <div class="flex gap-2 mt-2">
                     </div>
             </div>
             <div class="flex-1">
-                <span class="text-xs bg-brand-light text-brand-pink px-2.5 py-1 rounded-full font-medium">${categoryLabels[p.category] || p.category}</span>
+                <span class="text-xs bg-brand-light text-brand-pink px-2.5 py-1 rounded-full font-medium">${categoryLabels[cat] || cat}</span>
                 <h2 class="font-serif text-2xl font-bold text-gray-900 mt-2 mb-1">${p.name}</h2>
                 <div class="flex items-baseline gap-3 mb-1">
-                    <span class="text-3xl font-bold text-brand-pink">$${p.price_detal.toFixed(2)}</span>
+                    <span class="text-3xl font-bold text-brand-pink">$${Number(p.price_detal).toFixed(2)}</span>
                     <span class="text-sm text-gray-500">Detal</span>
                 </div>
-                ${p.min_mayor < 999 ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${p.price_mayor.toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
+                ${p.min_mayor < 999 ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${Number(p.price_mayor).toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
                 <div class="text-xs text-gray-400 mb-4">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs (BCV ${BCV_RATE})</div>
                 ${swatchsHtml}
                 <div class="flex items-center gap-3 mb-4">
@@ -415,8 +405,8 @@ function openDetailModal(id) {
                 <div class="bg-gray-50 rounded-xl p-3">
                     <div class="text-xs font-bold text-gray-700 mb-2">Tabla de precios mayor:</div>
                     <div class="flex gap-4 text-xs text-gray-600">
-                        <div><span class="font-semibold">1 - ${p.min_mayor - 1} uds:</span> $${p.price_detal.toFixed(2)} c/u</div>
-                        <div><span class="font-semibold text-green-700">${p.min_mayor}+ uds:</span> $${p.price_mayor.toFixed(2)} c/u</div>
+                        <div><span class="font-semibold">1 - ${p.min_mayor - 1} uds:</span> $${Number(p.price_detal).toFixed(2)} c/u</div>
+                        <div><span class="font-semibold text-green-700">${p.min_mayor}+ uds:</span> $${Number(p.price_mayor).toFixed(2)} c/u</div>
                     </div>
                 </div>
             </div>
@@ -669,7 +659,6 @@ function toggleMobileCategories() {
 }
 
 // ===== INIT =====
-renderCategoryPills();
-renderProducts();
 updateCartBadge();
 window.addEventListener('scroll', () => updateCartFloat());
+initApp();
