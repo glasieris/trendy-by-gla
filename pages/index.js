@@ -91,7 +91,7 @@ const bodyHTML = `
             </div>
         </div>
         <div class="relative flex-1 min-h-[300px] md:min-h-[420px] flex items-center justify-center overflow-hidden">
-            <img src="/img/hero.png" alt="Accesorios by Gla" class="absolute inset-0 w-full h-full object-cover" style="object-position: center center;"
+            <img src="/img/hero.jpg" alt="Accesorios by Gla" class="absolute inset-0 w-full h-full object-cover" style="object-position: center center;"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="hidden w-full h-full items-center justify-center bg-gradient-to-br from-brand-light to-pink-200 flex-col gap-3 p-12">
                 <span class="font-serif italic text-4xl text-brand-pink">by Gla</span>
