@@ -1,4 +1,5 @@
 import Script from 'next/script'
+import Head from 'next/head'
 
 const bodyHTML = `
 <!-- ===== TOP ANNOUNCEMENT BAR ===== -->
@@ -525,6 +526,10 @@ const bodyHTML = `
 export default function Home() {
   return (
     <>
+      <Head>
+        <title>Trendy by Gla | Mayor y Detal</title>
+      </Head>
+      
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: bodyHTML }} />
       <Script src="/app.js" strategy="afterInteractive" />
     </>
