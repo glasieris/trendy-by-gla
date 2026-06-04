@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../components/admin/AdminLayout'
-import { supabase } from '../../lib/supabase'
 
 const emptyForm = {
   sku: '',
@@ -27,18 +26,17 @@ export default function InventoryPage() {
   async function fetchInventory() {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('inventory')
-      .select('*')
-      .order('id', { ascending: false })
+    const res = await fetch('/api/admin/inventory')
 
-    if (error) {
-      showToast('Error cargando inventario')
+    if (!res.ok) {
       setItems([])
-    } else {
-      setItems(data || [])
+      setLoading(false)
+      showToast('Error cargando inventario')
+      return
     }
 
+    const data = await res.json()
+    setItems(Array.isArray(data) ? data : [])
     setLoading(false)
   }
 
@@ -58,24 +56,25 @@ export default function InventoryPage() {
 
     setSaving(true)
 
-    const payload = {
-      sku: form.sku.trim(),
-      category: form.category.trim(),
-      description: form.description.trim(),
-      stock: Number(form.stock || 0),
-      purchase_price: Number(form.purchase_price || 0),
-      sale_price: Number(form.sale_price || 0),
-      supplier: form.supplier.trim()
-    }
-
-    const { error } = await supabase
-      .from('inventory')
-      .insert([payload])
+    const res = await fetch('/api/admin/inventory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sku: form.sku.trim(),
+        category: form.category.trim(),
+        description: form.description.trim(),
+        stock: Number(form.stock || 0),
+        purchase_price: Number(form.purchase_price || 0),
+        sale_price: Number(form.sale_price || 0),
+        supplier: form.supplier.trim()
+      })
+    })
 
     setSaving(false)
 
-    if (error) {
-      showToast(error.message || 'Error al guardar')
+    if (!res.ok) {
+      const d = await res.json()
+      showToast(d.error || 'Error al guardar')
       return
     }
 
@@ -85,16 +84,15 @@ export default function InventoryPage() {
   }
 
   async function handleFieldUpdate(id, field, value) {
-    const numericFields = ['stock', 'purchase_price', 'sale_price']
-    const finalValue = numericFields.includes(field) ? Number(value || 0) : value
+    const res = await fetch(`/api/admin/inventory/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value })
+    })
 
-    const { error } = await supabase
-      .from('inventory')
-      .update({ [field]: finalValue })
-      .eq('id', id)
-
-    if (error) {
-      showToast('No se pudo guardar el cambio')
+    if (!res.ok) {
+      const d = await res.json()
+      showToast(d.error || 'No se pudo guardar el cambio')
       return
     }
 
@@ -104,13 +102,13 @@ export default function InventoryPage() {
   async function handleDelete(id) {
     if (!confirm('Eliminar este item del inventario?')) return
 
-    const { error } = await supabase
-      .from('inventory')
-      .delete()
-      .eq('id', id)
+    const res = await fetch(`/api/admin/inventory/${id}`, {
+      method: 'DELETE'
+    })
 
-    if (error) {
-      showToast('Error eliminando item')
+    if (!res.ok) {
+      const d = await res.json()
+      showToast(d.error || 'Error eliminando item')
       return
     }
 
@@ -253,6 +251,8 @@ export default function InventoryPage() {
       <div style={{ background: 'white', borderRadius: 16, padding: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflowX: 'auto' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>Cargando inventario...</div>
+        ) : items.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>Aún no hay items en inventario</div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1400 }}>
             <thead>
