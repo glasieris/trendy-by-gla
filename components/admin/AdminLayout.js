@@ -45,7 +45,7 @@ export default function AdminLayout({ children, title = 'Admin' }) {
         </header>
 
         {/* Content */}
-        <main style={{ flex: 1, padding: '16px', paddingBottom: 80, maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+        <main style={{ flex: 1, padding: '16px', paddingBottom: 80, maxWidth: 700, margin: '0 auto', width: '100%' }}>
           {children}
         </main>
 
