@@ -4,6 +4,7 @@ import Head from 'next/head'
 const NAV = [
   { href: '/admin/orders',     icon: '📦', label: 'Pedidos' },
   { href: '/admin/products',   icon: '🛍️', label: 'Productos' },
+  { href: '/admin/inventory',  icon: '📋', label: 'Inventario' },
   { href: '/admin/categories', icon: '🏷️', label: 'Categorías' },
   { href: '/admin/settings',   icon: '⚙️', label: 'Configuración' },
 ]
