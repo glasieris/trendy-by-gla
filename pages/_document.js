@@ -39,6 +39,7 @@ export default function Document() {
         <meta charSet="UTF-8" />
         <title>Trendy by Gla | Mayor y Detal</title>
         <meta name="description" content="Accesorios de satén, maquillaje y productos trendy. Ventas al mayor y detal con envío a todo Venezuela." />
+        <link rel="icon" type="image/png" href="/favicon.png" />
         <script src="https://cdn.tailwindcss.com/3.4.17" />
         <script dangerouslySetInnerHTML={{ __html: tailwindConfig }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
