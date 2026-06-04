@@ -23,15 +23,18 @@ export default withAdminAuth(async function handler(req, res) {
       supplier
     } = req.body
 
-    const payload = {
-      sku: String(sku || '').trim(),
-      category: String(category || '').trim(),
-      description: String(description || '').trim(),
-      stock: Number(stock || 0),
-      purchase_price: Number(purchase_price || 0),
-      sale_price: Number(sale_price || 0),
-      supplier: String(supplier || '').trim()
-    }
+   const cleanDescription = String(description || '').trim()
+
+const payload = {
+  sku: String(sku || '').trim(),
+  category: String(category || '').trim(),
+  description: cleanDescription,
+  product_name: cleanDescription,
+  stock: Number(stock || 0),
+  purchase_price: Number(purchase_price || 0),
+  sale_price: Number(sale_price || 0),
+  supplier: String(supplier || '').trim()
+}
 
     const { data, error } = await supabaseAdmin
       .from('inventory')
