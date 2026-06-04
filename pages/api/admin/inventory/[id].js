@@ -26,7 +26,10 @@ export default withAdminAuth(async function handler(req, res) {
         }
       }
     }
-
+    if (req.body.description !== undefined) {
+  updates.product_name = String(req.body.description || '').trim()
+}
+    
     const { data, error } = await supabaseAdmin
       .from('inventory')
       .update(updates)
