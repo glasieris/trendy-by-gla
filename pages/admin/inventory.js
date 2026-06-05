@@ -248,6 +248,34 @@ export default function InventoryPage() {
         </button>
       </div>
 
+      <div style={{ background: 'white', borderRadius: 16, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        <h3 style={{ fontWeight: 700, marginBottom: 12 }}>Resumen</h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Cantidad total</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{totals.cantidad}</div>
+          </div>
+
+          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Total compra</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>${totals.totalCompra.toFixed(2)}</div>
+          </div>
+
+          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Total venta</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>${totals.totalVenta.toFixed(2)}</div>
+          </div>
+
+          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Ganancia</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: totals.ganancia >= 0 ? '#16a34a' : '#dc2626' }}>
+              ${totals.ganancia.toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div style={{ background: 'white', borderRadius: 16, padding: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflowX: 'auto' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>Cargando inventario...</div>
@@ -381,34 +409,6 @@ export default function InventoryPage() {
             </tbody>
           </table>
         )}
-      </div>
-
-      <div style={{ background: 'white', borderRadius: 16, padding: 16, marginTop: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <h3 style={{ fontWeight: 700, marginBottom: 12 }}>Resumen</h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Cantidad total</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{totals.cantidad}</div>
-          </div>
-
-          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Total compra</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>${totals.totalCompra.toFixed(2)}</div>
-          </div>
-
-          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Total venta</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>${totals.totalVenta.toFixed(2)}</div>
-          </div>
-
-          <div style={{ background: '#fff7fb', padding: 12, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Ganancia</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: totals.ganancia >= 0 ? '#16a34a' : '#dc2626' }}>
-              ${totals.ganancia.toFixed(2)}
-            </div>
-          </div>
-        </div>
       </div>
     </AdminLayout>
   )
