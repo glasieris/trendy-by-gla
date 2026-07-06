@@ -41,6 +41,26 @@ export default function CategoriesPage() {
     else { const d = await res.json(); showToast(d.error || 'Error') }
   }
 
+  // Move a category up (dir=-1) or down (dir=+1) by swapping sort_order with its neighbor
+  async function move(index, dir) {
+    const target = index + dir
+    if (target < 0 || target >= cats.length) return
+    const a = cats[index]
+    const b = cats[target]
+    // Optimistic UI: reorder locally right away
+    const reordered = [...cats]
+    reordered[index] = b
+    reordered[target] = a
+    setCats(reordered)
+    // Persist the swap of sort_order values
+    const [r1, r2] = await Promise.all([
+      fetch(`/api/admin/categories/${a.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sort_order: b.sort_order }) }),
+      fetch(`/api/admin/categories/${b.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sort_order: a.sort_order }) }),
+    ])
+    if (!r1.ok || !r2.ok) { showToast('Error al reordenar'); fetchCats(); return }
+    fetchCats()
+  }
+
   const inp = { width:'100%', border:'1.5px solid #fce7f3', borderRadius:10, padding:'10px 12px', fontSize:14, fontFamily:'Poppins,sans-serif', outline:'none', marginBottom:10 }
 
   return (
@@ -70,14 +90,20 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {loading ? <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Cargando...</div> : cats.map(cat => (
-        <div key={cat.id} style={{ background:'white', borderRadius:14, marginBottom:10, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
-          <div>
+      {loading ? <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Cargando...</div> : cats.map((cat, i) => (
+        <div key={cat.id} style={{ background:'white', borderRadius:14, marginBottom:10, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:4, flexShrink:0 }}>
+            <button onClick={() => move(i, -1)} disabled={i === 0} title="Subir"
+              style={{ background:'#fce7f3', border:'none', borderRadius:6, width:30, height:24, cursor: i === 0 ? 'not-allowed' : 'pointer', opacity: i === 0 ? 0.4 : 1, fontFamily:'inherit', fontSize:13, lineHeight:1 }}>▲</button>
+            <button onClick={() => move(i, 1)} disabled={i === cats.length - 1} title="Bajar"
+              style={{ background:'#fce7f3', border:'none', borderRadius:6, width:30, height:24, cursor: i === cats.length - 1 ? 'not-allowed' : 'pointer', opacity: i === cats.length - 1 ? 0.4 : 1, fontFamily:'inherit', fontSize:13, lineHeight:1 }}>▼</button>
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontWeight:700, fontSize:15 }}>{cat.label}</div>
             <div style={{ fontSize:12, color:'#9ca3af', marginTop:2 }}>ID: {cat.slug}{cat.description ? ' - ' + cat.description.substring(0,40) : ''}</div>
           </div>
           <button onClick={() => handleDelete(cat)}
-            style={{ background:'#fef2f2', border:'none', borderRadius:8, padding:'8px 14px', color:'#dc2626', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+            style={{ background:'#fef2f2', border:'none', borderRadius:8, padding:'8px 14px', color:'#dc2626', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}>
             Eliminar
           </button>
         </div>

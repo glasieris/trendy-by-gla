@@ -33,6 +33,16 @@ let categoryDescriptions = {
     'Ultimos': 'Los últimos productos disponibles — ¡no te los pierdas!'
 };
 
+// Ordered list of real categories (slug + label) used to build the header
+// menus. Populated from /api/config (respecting the sort_order set in admin);
+// these defaults are only a minimal fallback if the API is unreachable.
+let categoryList = [
+    { slug: 'Satin', label: 'Accesorios de Satín' },
+    { slug: 'Oro Laminado', label: 'Oro Laminado' },
+    { slug: 'Sets', label: 'Set para Regalar' },
+    { slug: 'Ultimos', label: 'Últimos Disponibles' }
+];
+
 // ===== PRODUCTS =====
 let products = [];
 
@@ -53,6 +63,7 @@ async function initApp() {
             if (data.fabrics && data.fabrics.length) fabrics = data.fabrics;
             if (data.products && data.products.length) products = data.products;
             if (data.categories && data.categories.length) {
+                categoryList = data.categories.map(c => ({ slug: c.slug, label: c.label }));
                 categories = ['All', ...data.categories.map(c => c.slug)];
                 categoryLabels = { 'All': 'Todos', 'Al Mayor': 'Al Mayor' };
                 categoryDescriptions = {};
@@ -65,6 +76,7 @@ async function initApp() {
     } catch(e) {
         console.warn('Using fallback data:', e);
     }
+    renderHeaderCategories();
     renderCategoryPills();
     renderProducts();
 }
@@ -112,6 +124,22 @@ function showToast(msg, type='success') {
     el.innerHTML = (type === 'success' ? '✓ ' : 'ℹ ') + msg;
     document.getElementById('toast-container').appendChild(el);
     setTimeout(() => el.remove(), 2100);
+}
+
+// ===== HEADER CATEGORY MENUS (desktop dropdown + mobile submenu) =====
+function renderHeaderCategories() {
+    const desktop = document.getElementById('categories-dropdown');
+    if (desktop) {
+        desktop.innerHTML = categoryList.map(c => `
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('${c.slug}');closeCategoriesDropdown();return false">${c.label}</a>
+        `).join('');
+    }
+    const mobile = document.getElementById('mobile-categories');
+    if (mobile) {
+        mobile.innerHTML = categoryList.map(c => `
+            <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('${c.slug}');toggleMobileMenu();return false">${c.label}</a>
+        `).join('');
+    }
 }
 
 // ===== CATEGORY PILLS =====
