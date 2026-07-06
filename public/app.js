@@ -91,26 +91,24 @@ let detailQty = 1;
 let detailColor = null;
 
 // ===== CART MATH =====
+// Wholesale price applies to a product ONLY when it has wholesale enabled
+// (hasMayoreo) AND its quantity reaches that product's own minimum. There is
+// no global "cart over $X" rule and no special-casing for hair products.
 function calculateCartMath() {
-    const baseTotal = cart.reduce((s, item) => s + item.price_detal * item.qty, 0);
-    const isWholesaleGlobal = baseTotal > 70;
     let total = 0;
     const itemsWithPrice = cart.map(item => {
         const p = products.find(x => x.id === item.id);
         let unitPrice = item.price_detal;
         let isMayor = false;
-        if (p) {
-            if (p.is_hair) {
-                if (item.qty >= 24) { unitPrice = p.price_mayor; isMayor = true; }
-            } else {
-                if (isWholesaleGlobal || item.qty >= p.min_mayor) { unitPrice = p.price_mayor; isMayor = true; }
-            }
+        if (p && hasMayoreo(p) && item.qty >= Number(p.min_mayor)) {
+            unitPrice = Number(p.price_mayor);
+            isMayor = true;
         }
         const subtotal = unitPrice * item.qty;
         total += subtotal;
         return { ...item, unitPrice, isMayor, subtotal };
     });
-    return { itemsWithPrice, total, isWholesaleGlobal };
+    return { itemsWithPrice, total };
 }
 
 function saveCart() {
@@ -309,7 +307,7 @@ function updateCartFloat(total) {
 }
 
 function renderCart() {
-    const { itemsWithPrice, total, isWholesaleGlobal } = calculateCartMath();
+    const { itemsWithPrice, total } = calculateCartMath();
     const el = document.getElementById('cart-items');
     if (cart.length === 0) {
         el.innerHTML = '<div class="text-center text-gray-400 py-12"><div class="text-4xl mb-3">🛍️</div><p class="text-sm">Tu carrito está vacío</p></div>';
@@ -338,11 +336,7 @@ function renderCart() {
         </div>
     `).join('');
 
-    let totalsHtml = '';
-    if (isWholesaleGlobal) {
-        totalsHtml += '<div class="text-green-700 text-xs bg-green-50 px-2 py-1 rounded-lg">✅ Precios mayor aplicados (total &gt; $70)</div>';
-    }
-    document.getElementById('cart-totals').innerHTML = totalsHtml;
+    document.getElementById('cart-totals').innerHTML = '';
     document.getElementById('cart-total').textContent = `$${total.toFixed(2)}`;
     document.getElementById('cart-total-bs').textContent = `≈ ${(total * BCV_RATE).toLocaleString('es-VE', {maximumFractionDigits:0})} Bs (BCV ${BCV_RATE})`;
 }
