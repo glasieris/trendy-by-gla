@@ -308,23 +308,6 @@ const bodyHTML = `
     </div>
 </div>
 
-<!-- ===== FABRIC MODAL ===== -->
-<div id="fabric-backdrop" class="fixed inset-0 bg-black/50 z-[70] hidden modal-backdrop"></div>
-<div id="fabric-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-lg" id="fabric-modal-title">Elige tu color</h3>
-            <button onclick="closeFabricModal()" class="p-2 hover:bg-gray-100 rounded-full">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div id="fabric-swatches" class="grid grid-cols-3 gap-3 mb-6"></div>
-        <button onclick="confirmFabric()" class="w-full bg-brand-pink text-white py-3 rounded-xl font-bold hover:bg-brand-dark transition-colors">
-            Agregar al carrito
-        </button>
-    </div>
-</div>
-
 <!-- ===== PRODUCT DETAIL MODAL ===== -->
 <div id="detail-backdrop" class="fixed inset-0 bg-black/60 z-[80] hidden modal-backdrop" onclick="closeDetailModal()"></div>
 <div id="detail-modal" class="fixed inset-0 z-[80] hidden overflow-y-auto">

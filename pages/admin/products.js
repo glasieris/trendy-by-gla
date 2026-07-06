@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/admin/AdminLayout'
 
-const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, has_fabrics:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'' }
+const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'' }
 
 function Toast({ msg, ok }) {
   return msg ? <div style={{ position:'fixed', bottom:90, left:'50%', transform:'translateX(-50%)', background: ok ? '#E91E8C' : '#dc2626', color:'white', padding:'10px 20px', borderRadius:12, fontWeight:600, fontSize:14, zIndex:200, whiteSpace:'nowrap' }}>{msg}</div> : null
@@ -332,9 +332,6 @@ export default function ProductsPage() {
 
         <div style={{ display:'flex', gap:8, marginTop:4 }}>
           <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, cursor:'pointer' }}>
-            <input type="checkbox" checked={form.has_fabrics} onChange={e => setForm(f => ({...f, has_fabrics: e.target.checked}))} /> Tiene colores de tela
-          </label>
-          <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, cursor:'pointer', marginLeft:16 }}>
             <input type="checkbox" checked={form.is_hair} onChange={e => setForm(f => ({...f, is_hair: e.target.checked}))} /> Es accesorio de cabello
           </label>
         </div>
