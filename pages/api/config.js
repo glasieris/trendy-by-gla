@@ -4,12 +4,13 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
 
   try {
-    const [settingsRes, categoriesRes, fabricsRes, productsRes, imagesRes] = await Promise.all([
+    const [settingsRes, categoriesRes, fabricsRes, productsRes, imagesRes, variantsRes] = await Promise.all([
       supabase.from('settings').select('value').eq('key', 'bcv_rate').single(),
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('fabric_colors').select('*').order('sort_order'),
       supabase.from('products').select('*').eq('active', true).order('sort_order'),
       supabase.from('product_images').select('product_id, url, sort_order').order('sort_order'),
+      supabase.from('product_variants').select('product_id, id, label, image_url, stock').eq('active', true).order('sort_order'),
     ])
 
     const bcv_rate = settingsRes.data?.value ? parseFloat(settingsRes.data.value) : 443.26
@@ -21,6 +22,13 @@ export default async function handler(req, res) {
     ;(imagesRes.data ?? []).forEach(img => {
       if (!imagesByProduct[img.product_id]) imagesByProduct[img.product_id] = []
       imagesByProduct[img.product_id].push(img.url)
+    })
+
+    // Build variants map: product_id → [{ id, label, image, stock }, ...]
+    const variantsByProduct = {}
+    ;(variantsRes.data ?? []).forEach(v => {
+      if (!variantsByProduct[v.product_id]) variantsByProduct[v.product_id] = []
+      variantsByProduct[v.product_id].push({ id: v.id, label: v.label, image: v.image_url, stock: v.stock })
     })
 
     const products = (productsRes.data ?? []).map(p => {
@@ -37,6 +45,7 @@ export default async function handler(req, res) {
         description: p.description || '',
         image_url: imgs[0] || null,
         images: imgs,
+        variants: variantsByProduct[p.id] ?? [],
       }
     })
 

@@ -15,3 +15,13 @@ create table if not exists product_variants (
 );
 
 create index if not exists product_variants_product_id_idx on product_variants (product_id);
+
+-- Public (anon) may READ active variants only; writes stay admin-only
+-- (the admin API uses the service_role key, which bypasses RLS).
+alter table product_variants enable row level security;
+
+create policy "Public can read active variants"
+  on product_variants
+  for select
+  to anon, authenticated
+  using (active = true);
