@@ -169,6 +169,10 @@ function renderProducts() {
         : currentCategory === 'Al Mayor' ? products.filter(hasMayoreo)
         : products.filter(p => p.category === currentCategory || p.category_slug === currentCategory);
 
+    // Sort alphabetically by name using Spanish collation (respects accents/ñ).
+    // Copy first so we never mutate the global products array.
+    list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+
     document.getElementById('catalog-title').textContent = currentCategory === 'All' ? 'Todos los Productos'
         : currentCategory === 'Al Mayor' ? 'Precios Al Mayor'
         : categoryLabels[currentCategory] || currentCategory;
