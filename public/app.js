@@ -36,6 +36,13 @@ let categoryDescriptions = {
 // ===== PRODUCTS =====
 let products = [];
 
+// ===== MAYOREO RULE (single source of truth) =====
+// A product has wholesale pricing active only when it has a real minimum
+// quantity (< 999 = "does not apply") AND a real wholesale price (> 0).
+function hasMayoreo(p) {
+    return Number(p.min_mayor) < 999 && Number(p.price_mayor) > 0;
+}
+
 // ===== LOAD CONFIG FROM API =====
 async function initApp() {
     try {
@@ -133,7 +140,7 @@ function getCategoryEmoji(cat) {
 
 function renderProducts() {
     let list = currentCategory === 'All' ? products
-        : currentCategory === 'Al Mayor' ? products
+        : currentCategory === 'Al Mayor' ? products.filter(hasMayoreo)
         : products.filter(p => p.category === currentCategory || p.category_slug === currentCategory);
 
     document.getElementById('catalog-title').textContent = currentCategory === 'All' ? 'Todos los Productos'
