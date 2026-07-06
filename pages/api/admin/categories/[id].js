@@ -4,6 +4,18 @@ import supabaseAdmin from '../../../../lib/supabaseAdmin'
 export default withAdminAuth(async function handler(req, res) {
   const { id } = req.query
 
+  if (req.method === 'PATCH') {
+    const allowed = ['slug', 'label', 'description', 'sort_order']
+    const updates = {}
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key]
+    }
+    if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Nada que actualizar' })
+    const { data, error } = await supabaseAdmin.from('categories').update(updates).eq('id', id).select().single()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json(data)
+  }
+
   if (req.method === 'DELETE') {
     const cat = await supabaseAdmin.from('categories').select('slug').eq('id', id).single()
     if (cat.data) {

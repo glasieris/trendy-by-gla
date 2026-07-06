@@ -24,16 +24,13 @@ const bodyHTML = `
         </div>
         <nav class="hidden lg:flex items-center gap-6">
             <a href="#" class="text-sm font-semibold text-gray-700 hover:text-brand-pink transition-colors" onclick="filterCategory('All');scrollToTop();return false">HOME</a>
-            <div class="relative group">
-                <button class="text-sm font-semibold text-gray-700 hover:text-brand-pink transition-colors flex items-center gap-1">
+            <div class="relative" id="categories-dropdown-wrap">
+                <button onclick="toggleCategoriesDropdown(event)" class="text-sm font-semibold text-gray-700 hover:text-brand-pink transition-colors flex items-center gap-1">
                     CATEGORIAS
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <div class="absolute top-full left-0 mt-1 bg-white border border-pink-100 rounded-xl shadow-lg py-2 min-w-[200px] hidden group-hover:block z-50">
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Satin');return false">Accesorios de Satín</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Oro Laminado');return false">Oro Laminado</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Sets');return false">Set para Regalar</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('Ultimos');return false">Últimos Disponibles</a>
+                <div id="categories-dropdown" class="absolute top-full left-0 mt-1 bg-white border border-pink-100 rounded-xl shadow-lg py-2 min-w-[200px] hidden z-50">
+                    <!-- Populated dynamically from the database by renderHeaderCategories() -->
                 </div>
             </div>
             <a href="#" class="text-sm font-semibold text-gray-700 hover:text-brand-pink transition-colors" onclick="filterCategory('Al Mayor');return false">AL MAYOR</a>
@@ -56,10 +53,7 @@ const bodyHTML = `
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div id="mobile-categories" class="hidden pl-4 space-y-1">
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Satin');toggleMobileMenu();return false">Accesorios de Satín</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Oro Laminado');toggleMobileMenu();return false">Oro Laminado</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Sets');toggleMobileMenu();return false">Set para Regalar</a>
-                <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('Ultimos');toggleMobileMenu();return false">Últimos Disponibles</a>
+                <!-- Populated dynamically from the database by renderHeaderCategories() -->
             </div>
         </div>
         <a href="#" class="block py-2 text-sm font-semibold text-gray-700" onclick="filterCategory('Al Mayor');toggleMobileMenu();return false">AL MAYOR</a>

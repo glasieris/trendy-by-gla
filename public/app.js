@@ -33,8 +33,25 @@ let categoryDescriptions = {
     'Ultimos': 'Los últimos productos disponibles — ¡no te los pierdas!'
 };
 
+// Ordered list of real categories (slug + label) used to build the header
+// menus. Populated from /api/config (respecting the sort_order set in admin);
+// these defaults are only a minimal fallback if the API is unreachable.
+let categoryList = [
+    { slug: 'Satin', label: 'Accesorios de Satín' },
+    { slug: 'Oro Laminado', label: 'Oro Laminado' },
+    { slug: 'Sets', label: 'Set para Regalar' },
+    { slug: 'Ultimos', label: 'Últimos Disponibles' }
+];
+
 // ===== PRODUCTS =====
 let products = [];
+
+// ===== MAYOREO RULE (single source of truth) =====
+// A product has wholesale pricing active only when it has a real minimum
+// quantity (< 999 = "does not apply") AND a real wholesale price (> 0).
+function hasMayoreo(p) {
+    return Number(p.min_mayor) < 999 && Number(p.price_mayor) > 0;
+}
 
 // ===== LOAD CONFIG FROM API =====
 async function initApp() {
@@ -46,6 +63,7 @@ async function initApp() {
             if (data.fabrics && data.fabrics.length) fabrics = data.fabrics;
             if (data.products && data.products.length) products = data.products;
             if (data.categories && data.categories.length) {
+                categoryList = data.categories.map(c => ({ slug: c.slug, label: c.label }));
                 categories = ['All', ...data.categories.map(c => c.slug)];
                 categoryLabels = { 'All': 'Todos', 'Al Mayor': 'Al Mayor' };
                 categoryDescriptions = {};
@@ -58,6 +76,7 @@ async function initApp() {
     } catch(e) {
         console.warn('Using fallback data:', e);
     }
+    renderHeaderCategories();
     renderCategoryPills();
     renderProducts();
 }
@@ -72,26 +91,24 @@ let detailQty = 1;
 let detailColor = null;
 
 // ===== CART MATH =====
+// Wholesale price applies to a product ONLY when it has wholesale enabled
+// (hasMayoreo) AND its quantity reaches that product's own minimum. There is
+// no global "cart over $X" rule and no special-casing for hair products.
 function calculateCartMath() {
-    const baseTotal = cart.reduce((s, item) => s + item.price_detal * item.qty, 0);
-    const isWholesaleGlobal = baseTotal > 70;
     let total = 0;
     const itemsWithPrice = cart.map(item => {
         const p = products.find(x => x.id === item.id);
         let unitPrice = item.price_detal;
         let isMayor = false;
-        if (p) {
-            if (p.is_hair) {
-                if (item.qty >= 24) { unitPrice = p.price_mayor; isMayor = true; }
-            } else {
-                if (isWholesaleGlobal || item.qty >= p.min_mayor) { unitPrice = p.price_mayor; isMayor = true; }
-            }
+        if (p && hasMayoreo(p) && item.qty >= Number(p.min_mayor)) {
+            unitPrice = Number(p.price_mayor);
+            isMayor = true;
         }
         const subtotal = unitPrice * item.qty;
         total += subtotal;
         return { ...item, unitPrice, isMayor, subtotal };
     });
-    return { itemsWithPrice, total, isWholesaleGlobal };
+    return { itemsWithPrice, total };
 }
 
 function saveCart() {
@@ -105,6 +122,22 @@ function showToast(msg, type='success') {
     el.innerHTML = (type === 'success' ? '✓ ' : 'ℹ ') + msg;
     document.getElementById('toast-container').appendChild(el);
     setTimeout(() => el.remove(), 2100);
+}
+
+// ===== HEADER CATEGORY MENUS (desktop dropdown + mobile submenu) =====
+function renderHeaderCategories() {
+    const desktop = document.getElementById('categories-dropdown');
+    if (desktop) {
+        desktop.innerHTML = categoryList.map(c => `
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-light hover:text-brand-pink" onclick="filterCategory('${c.slug}');closeCategoriesDropdown();return false">${c.label}</a>
+        `).join('');
+    }
+    const mobile = document.getElementById('mobile-categories');
+    if (mobile) {
+        mobile.innerHTML = categoryList.map(c => `
+            <a href="#" class="block py-1.5 text-sm text-gray-600" onclick="filterCategory('${c.slug}');toggleMobileMenu();return false">${c.label}</a>
+        `).join('');
+    }
 }
 
 // ===== CATEGORY PILLS =====
@@ -133,8 +166,12 @@ function getCategoryEmoji(cat) {
 
 function renderProducts() {
     let list = currentCategory === 'All' ? products
-        : currentCategory === 'Al Mayor' ? products
+        : currentCategory === 'Al Mayor' ? products.filter(hasMayoreo)
         : products.filter(p => p.category === currentCategory || p.category_slug === currentCategory);
+
+    // Sort alphabetically by name using Spanish collation (respects accents/ñ).
+    // Copy first so we never mutate the global products array.
+    list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
 
     document.getElementById('catalog-title').textContent = currentCategory === 'All' ? 'Todos los Productos'
         : currentCategory === 'Al Mayor' ? 'Precios Al Mayor'
@@ -149,7 +186,8 @@ function renderProducts() {
 
     document.getElementById('product-grid').innerHTML = list.map(p => {
         const cat = p.category || p.category_slug || '';
-        const mayorBadge = currentCategory === 'Al Mayor'
+        const mayorBadge = !hasMayoreo(p) ? ''
+            : currentCategory === 'Al Mayor'
             ? `<div class="text-xs text-green-700 font-medium">Mayor: $${Number(p.price_mayor).toFixed(2)} (${p.min_mayor}+ uds)</div>`
             : `<div class="text-xs text-gray-400">Mayor: $${Number(p.price_mayor).toFixed(2)} · ${p.min_mayor}+ uds</div>`;
         const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
@@ -273,7 +311,7 @@ function updateCartFloat(total) {
 }
 
 function renderCart() {
-    const { itemsWithPrice, total, isWholesaleGlobal } = calculateCartMath();
+    const { itemsWithPrice, total } = calculateCartMath();
     const el = document.getElementById('cart-items');
     if (cart.length === 0) {
         el.innerHTML = '<div class="text-center text-gray-400 py-12"><div class="text-4xl mb-3">🛍️</div><p class="text-sm">Tu carrito está vacío</p></div>';
@@ -302,11 +340,7 @@ function renderCart() {
         </div>
     `).join('');
 
-    let totalsHtml = '';
-    if (isWholesaleGlobal) {
-        totalsHtml += '<div class="text-green-700 text-xs bg-green-50 px-2 py-1 rounded-lg">✅ Precios mayor aplicados (total &gt; $70)</div>';
-    }
-    document.getElementById('cart-totals').innerHTML = totalsHtml;
+    document.getElementById('cart-totals').innerHTML = '';
     document.getElementById('cart-total').textContent = `$${total.toFixed(2)}`;
     document.getElementById('cart-total-bs').textContent = `≈ ${(total * BCV_RATE).toLocaleString('es-VE', {maximumFractionDigits:0})} Bs (BCV ${BCV_RATE})`;
 }
@@ -389,7 +423,7 @@ function openDetailModal(id) {
                     <span class="text-3xl font-bold text-brand-pink">$${Number(p.price_detal).toFixed(2)}</span>
                     <span class="text-sm text-gray-500">Detal</span>
                 </div>
-                ${p.min_mayor < 999 ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${Number(p.price_mayor).toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
+                ${hasMayoreo(p) ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${Number(p.price_mayor).toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
                 <div class="text-xs text-gray-400 mb-4">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs (BCV ${BCV_RATE})</div>
                 ${swatchsHtml}
                 <div class="flex items-center gap-3 mb-4">
@@ -402,13 +436,14 @@ function openDetailModal(id) {
                     🛍️ Agregar al Carrito
                 </button>
                 <p class="text-sm text-gray-500 mb-4">${description}</p>
+                ${hasMayoreo(p) ? `
                 <div class="bg-gray-50 rounded-xl p-3">
                     <div class="text-xs font-bold text-gray-700 mb-2">Tabla de precios mayor:</div>
                     <div class="flex gap-4 text-xs text-gray-600">
                         <div><span class="font-semibold">1 - ${p.min_mayor - 1} uds:</span> $${Number(p.price_detal).toFixed(2)} c/u</div>
                         <div><span class="font-semibold text-green-700">${p.min_mayor}+ uds:</span> $${Number(p.price_mayor).toFixed(2)} c/u</div>
                     </div>
-                </div>
+                </div>` : ''}
             </div>
         </div>
     `;
@@ -657,6 +692,26 @@ function toggleMobileMenu() {
 function toggleMobileCategories() {
     document.getElementById('mobile-categories').classList.toggle('hidden');
 }
+
+// ===== HEADER CATEGORIES DROPDOWN (click-based, works on desktop & mobile) =====
+function toggleCategoriesDropdown(e) {
+    if (e) e.stopPropagation();
+    const dd = document.getElementById('categories-dropdown');
+    if (dd) dd.classList.toggle('hidden');
+}
+
+function closeCategoriesDropdown() {
+    const dd = document.getElementById('categories-dropdown');
+    if (dd) dd.classList.add('hidden');
+}
+
+// Close the dropdown when clicking anywhere outside of it
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('categories-dropdown');
+    if (!dd || dd.classList.contains('hidden')) return;
+    const wrap = document.getElementById('categories-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) closeCategoriesDropdown();
+});
 
 // ===== INIT =====
 updateCartBadge();
