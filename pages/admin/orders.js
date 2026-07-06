@@ -48,7 +48,7 @@ function OrderCard({ order, onUpdate }) {
             <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, marginBottom: 6 }}>PRODUCTOS</div>
             {items.map((item, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderBottom: '1px solid #f9fafb' }}>
-                <span>{item.name}{item.color ? ` · ${item.color}` : ''} x{item.qty}</span>
+                <span>{item.name}{item.variantLabel ? ` · ${item.variantLabel}` : ''} x{item.qty}</span>
                 <span style={{ fontWeight: 600 }}>${Number(item.subtotal).toFixed(2)}</span>
               </div>
             ))}

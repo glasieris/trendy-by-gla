@@ -1,19 +1,6 @@
 // ===== CONFIG =====
 let BCV_RATE = 443.26;
-const CART_KEY = 'gla_cart_v3';
-
-// ===== FABRICS =====
-let fabrics = [
-    {name:'Rosa Pastel', hex:'#FBCFE8'},
-    {name:'Negro Profundo', hex:'#1F2937'},
-    {name:'Champagne', hex:'#F5E6C8'},
-    {name:'Azul Rey', hex:'#1D4ED8'},
-    {name:'Vino Tinto', hex:'#7F1D1D'},
-    {name:'Blanco Perla', hex:'#F8FAFC'},
-    {name:'Fucsia', hex:'#DB2777'},
-    {name:'Lila', hex:'#C084FC'},
-    {name:'Dorado', hex:'#D4A574'}
-];
+const CART_KEY = 'gla_cart_v4';
 
 // ===== CATEGORIES =====
 let categories = ['All', 'Satin', 'Oro Laminado', 'Sets', 'Ultimos'];
@@ -60,7 +47,6 @@ async function initApp() {
         if (res.ok) {
             const data = await res.json();
             BCV_RATE = data.bcv_rate || BCV_RATE;
-            if (data.fabrics && data.fabrics.length) fabrics = data.fabrics;
             if (data.products && data.products.length) products = data.products;
             if (data.categories && data.categories.length) {
                 categoryList = data.categories.map(c => ({ slug: c.slug, label: c.label }));
@@ -84,11 +70,9 @@ async function initApp() {
 // ===== STATE =====
 let cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
 let currentCategory = 'All';
-let fabricModalProduct = null;
-let fabricModalColor = null;
 let detailProduct = null;
 let detailQty = 1;
-let detailColor = null;
+let detailVariant = null;
 
 // ===== CART MATH =====
 // Wholesale price applies to a product ONLY when it has wholesale enabled
@@ -225,63 +209,31 @@ function filterCategory(cat) {
 function quickAdd(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    if (p.has_fabrics) {
-        openFabricModal(p);
+    if (p.variants && p.variants.length) {
+        // Product has variants — open the detail modal so the customer chooses one.
+        openDetailModal(id);
     } else {
         addToCart(p, 1, null);
         showToast(`${p.name} agregado al carrito`);
     }
 }
 
-// ===== FABRIC MODAL =====
-function openFabricModal(p) {
-    fabricModalProduct = p;
-    fabricModalColor = null;
-    document.getElementById('fabric-modal-title').textContent = `Elige tu color · ${p.name}`;
-    const swatchContainer = document.getElementById('fabric-swatches');
-    swatchContainer.innerHTML = fabrics.map((f, i) => `
-        <button onclick="selectFabric(${i})" id="swatch-${i}"
-            class="flex flex-col items-center gap-1 p-2 rounded-xl border-2 border-transparent hover:border-brand-pink transition-all">
-            <div class="w-10 h-10 rounded-full border-2 border-gray-200 shadow-sm" style="background:${f.hex}"></div>
-            <span class="text-xs text-gray-600 text-center leading-tight">${f.name}</span>
-        </button>
-    `).join('');
-    document.getElementById('fabric-backdrop').classList.remove('hidden');
-    document.getElementById('fabric-modal').classList.remove('hidden');
-}
-
-function selectFabric(i) {
-    fabricModalColor = fabrics[i].name;
-    document.querySelectorAll('[id^="swatch-"]').forEach((el, idx) => {
-        el.classList.toggle('border-brand-pink', idx === i);
-        el.classList.toggle('bg-brand-light', idx === i);
-        el.classList.toggle('border-transparent', idx !== i);
-    });
-}
-
-function closeFabricModal() {
-    document.getElementById('fabric-backdrop').classList.add('hidden');
-    document.getElementById('fabric-modal').classList.add('hidden');
-    fabricModalProduct = null;
-    fabricModalColor = null;
-}
-
-function confirmFabric() {
-    if (!fabricModalColor) { showToast('Por favor selecciona un color', 'info'); return; }
-    addToCart(fabricModalProduct, 1, fabricModalColor);
-    showToast(`${fabricModalProduct.name} (${fabricModalColor}) agregado`);
-    closeFabricModal();
-}
-
 // ===== ADD TO CART =====
-function addToCart(p, qty, color) {
-    const key = p.id + (color ? '_' + color : '');
+function addToCart(p, qty, variant) {
+    const key = p.id + (variant ? '_v' + variant.id : '');
     const existing = cart.find(x => x.key === key);
     if (existing) {
         existing.qty += qty;
     } else {
         const cat = p.category || p.category_slug || '';
-        cart.push({ key, id: p.id, name: p.name, category: cat, is_hair: p.is_hair, has_fabrics: p.has_fabrics, price_detal: Number(p.price_detal), price_mayor: Number(p.price_mayor), min_mayor: p.min_mayor, qty, color });
+        cart.push({
+            key, id: p.id, name: p.name, category: cat,
+            price_detal: Number(p.price_detal), price_mayor: Number(p.price_mayor), min_mayor: p.min_mayor,
+            qty,
+            variantId: variant ? variant.id : null,
+            variantLabel: variant ? variant.label : null,
+            variantImage: variant ? variant.image : null,
+        });
     }
     saveCart();
     renderCart();
@@ -322,12 +274,12 @@ function renderCart() {
     }
     el.innerHTML = itemsWithPrice.map(item => `
         <div class="flex gap-3 bg-gray-50 rounded-xl p-3">
-            <img src="${getProductImage(products.find(p=>p.id===item.id) || item)}" alt="${item.name}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+            <img src="${item.variantImage || getProductImage(products.find(p=>p.id===item.id) || item)}" alt="${item.name}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="hidden w-14 h-14 rounded-lg bg-brand-light items-center justify-center text-xl flex-shrink-0">${getCategoryEmoji(item.category||'')}</div>
             <div class="flex-1 min-w-0">
                 <div class="font-semibold text-sm truncate">${item.name}</div>
-                ${item.color ? `<div class="text-xs text-gray-500">${item.color}</div>` : ''}
+                ${item.variantLabel ? `<div class="text-xs text-gray-500">${item.variantLabel}</div>` : ''}
                 ${item.isMayor ? '<span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Mayor ✓</span>' : ''}
                 <div class="flex items-center gap-2 mt-1.5">
                     <button onclick="changeQty('${item.key}', -1)" class="w-6 h-6 bg-white border border-gray-200 rounded-full text-sm font-bold flex items-center justify-center hover:border-brand-pink">-</button>
@@ -382,22 +334,29 @@ function openDetailModal(id) {
     if (!p) return;
     detailProduct = p;
     detailQty = 1;
-    detailColor = null;
+    detailVariant = null;
 
     const cat = p.category || p.category_slug || '';
     const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
-    const swatchsHtml = p.has_fabrics ? `
+    const variantsHtml = (p.variants && p.variants.length) ? `
         <div class="mb-4">
-            <div class="text-sm font-semibold text-gray-700 mb-2">Color / Tela:</div>
+            <div class="text-sm font-semibold text-gray-700 mb-2">Elige una opción:</div>
             <div class="flex flex-wrap gap-2">
-                ${fabrics.map((f, i) => `
-                    <button onclick="selectDetailColor(${i}, this)" title="${f.name}"
-                        class="w-8 h-8 rounded-full border-2 border-gray-200 hover:border-brand-pink transition-all shadow-sm flex-shrink-0"
-                        style="background:${f.hex}">
-                    </button>
-                `).join('')}
+                ${p.variants.map((v, i) => {
+                    const agotado = Number(v.stock) <= 0;
+                    return `
+                    <button ${agotado ? 'disabled' : `onclick="selectDetailVariant(${i}, this)"`} id="variant-${i}"
+                        class="relative flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 border-gray-200 w-20 transition-all ${agotado ? 'opacity-60 cursor-not-allowed' : 'hover:border-brand-pink cursor-pointer'}"
+                        title="${v.label}">
+                        <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 ${agotado ? 'grayscale' : ''}">
+                            ${v.image ? `<img src="${v.image}" alt="${v.label}" class="w-full h-full object-cover">` : ''}
+                        </div>
+                        <span class="text-[11px] text-center leading-tight ${agotado ? 'line-through text-gray-400' : 'text-gray-700'}">${v.label}</span>
+                        ${agotado ? `<span class="text-[9px] font-bold text-red-500">Agotado</span>` : ''}
+                    </button>`;
+                }).join('')}
             </div>
-            <div id="detail-color-label" class="text-xs text-gray-500 mt-1">Ningún color seleccionado</div>
+            <div id="detail-variant-label" class="text-xs text-gray-500 mt-1">Ninguna opción seleccionada</div>
         </div>
     ` : '';
 
@@ -407,7 +366,7 @@ function openDetailModal(id) {
         <div class="flex flex-col md:flex-row gap-6">
             <div class="md:w-72 flex-shrink-0">
                 <div class="aspect-square rounded-xl overflow-hidden bg-gray-50">
-                    <img src="${getProductImage(p)}" alt="${p.name}" class="w-full h-full object-cover"
+                    <img id="detail-main-img" src="${getProductImage(p)}" alt="${p.name}" class="w-full h-full object-cover"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <div class="hidden w-full h-full items-center justify-center bg-brand-light text-6xl">
                         ${getCategoryEmoji(cat)}
@@ -425,7 +384,7 @@ function openDetailModal(id) {
                 </div>
                 ${hasMayoreo(p) ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${Number(p.price_mayor).toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
                 <div class="text-xs text-gray-400 mb-4">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs (BCV ${BCV_RATE})</div>
-                ${swatchsHtml}
+                ${variantsHtml}
                 <div class="flex items-center gap-3 mb-4">
                     <span class="text-sm font-semibold text-gray-700">Cantidad:</span>
                     <button onclick="changeDetailQty(-1)" class="w-8 h-8 border-2 border-gray-200 rounded-full font-bold text-lg flex items-center justify-center hover:border-brand-pink">−</button>
@@ -453,15 +412,20 @@ function openDetailModal(id) {
     document.body.style.overflow = 'hidden';
 }
 
-function selectDetailColor(i, btn) {
-    detailColor = fabrics[i].name;
-    document.getElementById('detail-modal').querySelectorAll('[onclick^="selectDetailColor"]').forEach(el => {
-        el.classList.remove('border-brand-pink', 'scale-110');
+function selectDetailVariant(i, btn) {
+    const v = detailProduct && detailProduct.variants ? detailProduct.variants[i] : null;
+    if (!v || Number(v.stock) <= 0) return; // agotado / inválido: no seleccionable
+    detailVariant = v;
+    document.getElementById('detail-modal').querySelectorAll('[id^="variant-"]').forEach(el => {
+        el.classList.remove('border-brand-pink');
         el.classList.add('border-gray-200');
     });
     btn.classList.remove('border-gray-200');
-    btn.classList.add('border-brand-pink', 'scale-110');
-    document.getElementById('detail-color-label').textContent = `Color: ${fabrics[i].name}`;
+    btn.classList.add('border-brand-pink');
+    const label = document.getElementById('detail-variant-label');
+    if (label) label.textContent = `Opción: ${v.label}`;
+    const mainImg = document.getElementById('detail-main-img');
+    if (mainImg && v.image) { mainImg.src = v.image; mainImg.style.display = ''; }
 }
 
 function changeDetailQty(delta) {
@@ -472,12 +436,13 @@ function changeDetailQty(delta) {
 
 function addFromDetail() {
     if (!detailProduct) return;
-    if (detailProduct.has_fabrics && !detailColor) {
-        showToast('Por favor selecciona un color', 'info');
+    const hasVariants = detailProduct.variants && detailProduct.variants.length;
+    if (hasVariants && !detailVariant) {
+        showToast('Por favor elige una opción', 'info');
         return;
     }
-    addToCart(detailProduct, detailQty, detailColor);
-    showToast(`${detailProduct.name}${detailColor ? ' (' + detailColor + ')' : ''} agregado`);
+    addToCart(detailProduct, detailQty, detailVariant);
+    showToast(`${detailProduct.name}${detailVariant ? ' (' + detailVariant.label + ')' : ''} agregado`);
     closeDetailModal();
     openCart();
 }
@@ -513,7 +478,7 @@ function renderCheckoutDetail() {
         <div class="flex items-center justify-between gap-2 py-1 border-b border-gray-100 last:border-0">
             <div class="flex-1 min-w-0">
                 <span class="font-medium text-gray-800">${item.name}</span>
-                ${item.color ? `<span class="text-gray-500"> · ${item.color}</span>` : ''}
+                ${item.variantLabel ? `<span class="text-gray-500"> · ${item.variantLabel}</span>` : ''}
                 ${item.isMayor ? `<span class="ml-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Mayor ✓</span>` : ''}
             </div>
             <div class="text-right flex-shrink-0">
@@ -659,7 +624,7 @@ function showSuccessModal(items, subtotal, delivery, gift, grand, orderNum) {
         <div class="flex justify-between items-center gap-2 py-1 border-b border-gray-100 last:border-0">
             <div>
                 <span class="font-medium">${item.name}</span>
-                ${item.color ? `<span class="text-gray-500 text-xs"> · ${item.color}</span>` : ''}
+                ${item.variantLabel ? `<span class="text-gray-500 text-xs"> · ${item.variantLabel}</span>` : ''}
                 ${item.isMayor ? `<span class="ml-1 text-xs bg-green-100 text-green-700 px-1 rounded-full">Mayor</span>` : ''}
             </div>
             <div class="text-right flex-shrink-0 text-gray-600">x${item.qty} <span class="text-brand-pink font-semibold">$${item.subtotal.toFixed(2)}</span></div>
