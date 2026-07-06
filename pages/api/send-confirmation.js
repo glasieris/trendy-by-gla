@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const itemsRows = items.map(item => `
     <tr>
       <td style="padding:8px 4px;border-bottom:1px solid #fce7f3;font-size:14px;">
-        ${item.name}${item.color ? ` <span style="color:#9ca3af;">(${item.color})</span>` : ''}
+        ${item.name}${item.variantLabel ? ` <span style="color:#9ca3af;">(${item.variantLabel})</span>` : ''}
         ${item.isMayor ? ' <span style="background:#dcfce7;color:#166534;font-size:11px;padding:1px 6px;border-radius:10px;">Mayor ✓</span>' : ''}
       </td>
       <td style="padding:8px 4px;border-bottom:1px solid #fce7f3;text-align:center;font-size:14px;">x${item.qty}</td>
