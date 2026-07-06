@@ -184,7 +184,8 @@ function renderProducts() {
 
     document.getElementById('product-grid').innerHTML = list.map(p => {
         const cat = p.category || p.category_slug || '';
-        const mayorBadge = currentCategory === 'Al Mayor'
+        const mayorBadge = !hasMayoreo(p) ? ''
+            : currentCategory === 'Al Mayor'
             ? `<div class="text-xs text-green-700 font-medium">Mayor: $${Number(p.price_mayor).toFixed(2)} (${p.min_mayor}+ uds)</div>`
             : `<div class="text-xs text-gray-400">Mayor: $${Number(p.price_mayor).toFixed(2)} · ${p.min_mayor}+ uds</div>`;
         const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
@@ -424,7 +425,7 @@ function openDetailModal(id) {
                     <span class="text-3xl font-bold text-brand-pink">$${Number(p.price_detal).toFixed(2)}</span>
                     <span class="text-sm text-gray-500">Detal</span>
                 </div>
-                ${p.min_mayor < 999 ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${Number(p.price_mayor).toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
+                ${hasMayoreo(p) ? `<div class="text-sm text-gray-600 mb-1">Mayor: <span class="font-semibold text-green-700">$${Number(p.price_mayor).toFixed(2)}</span> (${p.min_mayor}+ uds)</div>` : ''}
                 <div class="text-xs text-gray-400 mb-4">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs (BCV ${BCV_RATE})</div>
                 ${swatchsHtml}
                 <div class="flex items-center gap-3 mb-4">
@@ -437,13 +438,14 @@ function openDetailModal(id) {
                     🛍️ Agregar al Carrito
                 </button>
                 <p class="text-sm text-gray-500 mb-4">${description}</p>
+                ${hasMayoreo(p) ? `
                 <div class="bg-gray-50 rounded-xl p-3">
                     <div class="text-xs font-bold text-gray-700 mb-2">Tabla de precios mayor:</div>
                     <div class="flex gap-4 text-xs text-gray-600">
                         <div><span class="font-semibold">1 - ${p.min_mayor - 1} uds:</span> $${Number(p.price_detal).toFixed(2)} c/u</div>
                         <div><span class="font-semibold text-green-700">${p.min_mayor}+ uds:</span> $${Number(p.price_mayor).toFixed(2)} c/u</div>
                     </div>
-                </div>
+                </div>` : ''}
             </div>
         </div>
     `;
