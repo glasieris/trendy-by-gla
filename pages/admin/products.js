@@ -16,6 +16,8 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState(null) // null | 'new' | product object
   const [form, setForm] = useState(EMPTY)
   const [productImages, setProductImages] = useState([]) // {id, url, sort_order}[]
+  const [productVariants, setProductVariants] = useState([]) // {id, image_url, label, stock}[]
+  const [variantEdits, setVariantEdits] = useState({}) // { [image_url]: { label, stock } }
   const [imgUploading, setImgUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState({ msg:'', ok:true })
@@ -36,23 +38,72 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchData() }, [])
 
+  // Seed the editable label/stock inputs from the loaded variants (merging so
+  // in-progress typing on other photos isn't wiped when one photo is saved).
+  useEffect(() => {
+    setVariantEdits(prev => {
+      const seed = { ...prev }
+      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? '') } })
+      return seed
+    })
+  }, [productVariants])
+
   async function fetchProductImages(productId) {
     const res = await fetch(`/api/admin/products/${productId}/images`)
     if (res.ok) setProductImages(await res.json())
     else setProductImages([])
   }
 
+  async function fetchProductVariants(productId) {
+    const res = await fetch(`/api/admin/products/${productId}/variants`)
+    if (res.ok) setProductVariants(await res.json())
+    else setProductVariants([])
+  }
+
+  // Upsert the variant for a photo. Empty name removes it (plain gallery photo).
+  async function saveVariant(image_url, label, stock) {
+    const res = await fetch(`/api/admin/products/${form.id}/variants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url, label, stock: Number(stock || 0) }),
+    })
+    if (res.ok) { await fetchProductVariants(form.id); showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada') }
+    else showToast('Error al guardar la variante', false)
+  }
+
+  function setEdit(url, field, val) {
+    setVariantEdits(prev => ({ ...prev, [url]: { ...prev[url], [field]: val } }))
+  }
+
+  // Save on blur, but only if the name/stock actually changed.
+  function commitVariant(url) {
+    const e = variantEdits[url] || {}
+    const label = String(e.label || '').trim()
+    const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
+    const existing = productVariants.find(v => v.image_url === url)
+    const prevLabel = String(existing?.label || '').trim()
+    const prevStock = existing?.stock ?? 0
+    if (label === prevLabel && stock === prevStock) return
+    if (!label && !existing) return
+    saveVariant(url, label, stock)
+  }
+
   function openNew() {
     setForm(EMPTY)
     setProductImages([])
+    setProductVariants([])
+    setVariantEdits({})
     setEditing('new')
   }
 
   function openEdit(p) {
     setForm({ ...p, price_detal: String(p.price_detal), price_mayor: String(p.price_mayor), min_mayor: String(p.min_mayor) })
     setProductImages([])
+    setProductVariants([])
+    setVariantEdits({})
     setEditing(p)
     fetchProductImages(p.id)
+    fetchProductVariants(p.id)
   }
 
   function compressImage(file, callback) {
@@ -88,6 +139,7 @@ export default function ProductsPage() {
         })
         if (res.ok) {
           await fetchProductImages(form.id)
+          await fetchProductVariants(form.id)
           showToast('✅ Foto agregada')
         } else {
           const d = await res.json()
@@ -102,9 +154,19 @@ export default function ProductsPage() {
 
   async function handleDeleteImage(imageId) {
     if (!confirm('¿Eliminar esta foto?')) return
+    const img = productImages.find(i => i.id === imageId)
     const res = await fetch(`/api/admin/products/${form.id}/images/${imageId}`, { method: 'DELETE' })
     if (res.ok) {
+      // Also remove the variant tied to this photo, if any (empty label deletes it).
+      if (img) {
+        await fetch(`/api/admin/products/${form.id}/variants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url: img.url, label: '' }),
+        })
+      }
       await fetchProductImages(form.id)
+      await fetchProductVariants(form.id)
       showToast('Foto eliminada')
     } else {
       showToast('Error al eliminar foto', false)
@@ -181,23 +243,47 @@ export default function ProductsPage() {
               Guarda el producto primero para poder agregar fotos.
             </div>
           ) : (
-            <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-              {productImages.map((img, idx) => (
-                <div key={img.id} style={{ position:'relative', width:90, height:90 }}>
-                  <img src={img.url} alt="" style={{ width:90, height:90, objectFit:'cover', borderRadius:10, border: idx === 0 ? '2.5px solid #E91E8C' : '2px solid #fce7f3' }} />
-                  {idx === 0 && (
-                    <div style={{ position:'absolute', bottom:2, left:0, right:0, textAlign:'center', fontSize:9, fontWeight:700, color:'#E91E8C', background:'rgba(255,255,255,0.85)', borderRadius:'0 0 8px 8px', padding:'1px 0' }}>PRINCIPAL</div>
-                  )}
-                  <button
-                    onClick={() => handleDeleteImage(img.id)}
-                    style={{ position:'absolute', top:-6, right:-6, background:'#dc2626', color:'white', border:'none', borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, cursor:'pointer', fontWeight:700, lineHeight:1 }}
-                  >×</button>
-                </div>
-              ))}
+            <div style={{ display:'flex', flexWrap:'wrap', gap:12, alignItems:'flex-start' }}>
+              {productImages.map((img, idx) => {
+                const edit = variantEdits[img.url] || {}
+                const isVariant = String(edit.label || '').trim().length > 0
+                const isAgotado = isVariant && Number(edit.stock || 0) <= 0
+                const vInput = { width:120, marginTop:5, border:'1.5px solid #fce7f3', borderRadius:8, padding:'6px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none' }
+                return (
+                  <div key={img.id} style={{ width:120 }}>
+                    <div style={{ position:'relative', width:120, height:120 }}>
+                      <img src={img.url} alt="" style={{ width:120, height:120, objectFit:'cover', borderRadius:10, border: idx === 0 ? '2.5px solid #E91E8C' : '2px solid #fce7f3' }} />
+                      {idx === 0 && (
+                        <div style={{ position:'absolute', bottom:2, left:0, right:0, textAlign:'center', fontSize:9, fontWeight:700, color:'#E91E8C', background:'rgba(255,255,255,0.85)', borderRadius:'0 0 8px 8px', padding:'1px 0' }}>PRINCIPAL</div>
+                      )}
+                      <button
+                        onClick={() => handleDeleteImage(img.id)}
+                        style={{ position:'absolute', top:-6, right:-6, background:'#dc2626', color:'white', border:'none', borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, cursor:'pointer', fontWeight:700, lineHeight:1 }}
+                      >×</button>
+                    </div>
+                    <input
+                      value={edit.label ?? ''}
+                      onChange={e => setEdit(img.url, 'label', e.target.value)}
+                      onBlur={() => commitVariant(img.url)}
+                      placeholder="Nombre (ej: Rosa)"
+                      style={vInput}
+                    />
+                    <input
+                      type="number"
+                      value={edit.stock ?? ''}
+                      onChange={e => setEdit(img.url, 'stock', e.target.value)}
+                      onBlur={() => commitVariant(img.url)}
+                      placeholder="Stock"
+                      style={{ ...vInput, marginTop:4 }}
+                    />
+                    {isAgotado && <div style={{ fontSize:10, color:'#dc2626', fontWeight:700, marginTop:3 }}>● Agotado</div>}
+                  </div>
+                )
+              })}
               <button
                 onClick={() => imgRef.current.click()}
                 disabled={imgUploading}
-                style={{ width:90, height:90, borderRadius:10, border:'2px dashed #E91E8C', background:'#fce7f3', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:26, color:'#E91E8C' }}
+                style={{ width:120, height:120, borderRadius:10, border:'2px dashed #E91E8C', background:'#fce7f3', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:26, color:'#E91E8C' }}
               >
                 {imgUploading ? <span style={{ fontSize:11, fontWeight:600 }}>Subiendo...</span> : <><span>+</span><span style={{ fontSize:10, fontWeight:600, marginTop:2 }}>Agregar foto</span></>}
               </button>
@@ -205,7 +291,10 @@ export default function ProductsPage() {
             </div>
           )}
           {productImages.length > 0 && (
-            <div style={{ fontSize:11, color:'#9ca3af', marginTop:6 }}>La primera foto es la imagen principal del catálogo.</div>
+            <div style={{ fontSize:11, color:'#9ca3af', marginTop:8, lineHeight:1.5 }}>
+              La primera foto es la imagen principal del catálogo.<br />
+              Ponle un <strong>Nombre</strong> a una foto para convertirla en una <strong>variante comprable</strong> (color/modelo). El <strong>Stock</strong> en 0 la marca como <strong>Agotado</strong>.
+            </div>
           )}
         </div>
 
