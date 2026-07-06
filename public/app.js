@@ -658,6 +658,26 @@ function toggleMobileCategories() {
     document.getElementById('mobile-categories').classList.toggle('hidden');
 }
 
+// ===== HEADER CATEGORIES DROPDOWN (click-based, works on desktop & mobile) =====
+function toggleCategoriesDropdown(e) {
+    if (e) e.stopPropagation();
+    const dd = document.getElementById('categories-dropdown');
+    if (dd) dd.classList.toggle('hidden');
+}
+
+function closeCategoriesDropdown() {
+    const dd = document.getElementById('categories-dropdown');
+    if (dd) dd.classList.add('hidden');
+}
+
+// Close the dropdown when clicking anywhere outside of it
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('categories-dropdown');
+    if (!dd || dd.classList.contains('hidden')) return;
+    const wrap = document.getElementById('categories-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) closeCategoriesDropdown();
+});
+
 // ===== INIT =====
 updateCartBadge();
 window.addEventListener('scroll', () => updateCartFloat());
