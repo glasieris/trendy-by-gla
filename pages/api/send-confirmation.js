@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import supabaseAdmin from '../../lib/supabaseAdmin';
+import { sendTelegram } from '../../lib/telegram';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -204,6 +205,24 @@ export default async function handler(req, res) {
       grand,
       status: 'nuevo',
     }).then(({ error }) => { if (error) console.error('Supabase order save error:', error) });
+
+    // Telegram alert to the store (same bot as the BCV notices). Sent before the
+    // email so the store is notified even if the email provider fails.
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const itemLines = items.map(it => {
+      const variant = it.variantLabel ? ` (${esc(it.variantLabel)})` : '';
+      const mayor = it.isMayor ? ' · Mayor' : '';
+      return `• ${esc(it.name)}${variant} x${it.qty} — $${Number(it.subtotal).toFixed(2)}${mayor}`;
+    }).join('\n');
+    await sendTelegram(
+      `🛍️ <b>Nuevo pedido #${esc(orderNum)}</b>\n` +
+      `👤 ${esc(customerName)} — ${esc(customerPhone)}\n` +
+      `💳 ${esc(payment)}\n` +
+      `🚚 ${esc(deliveryLabel)}\n\n` +
+      `${itemLines}\n\n` +
+      (gift ? `🎁 Empaque regalo${giftMsg ? `: "${esc(giftMsg)}"` : ''}\n` : '') +
+      `<b>Total: $${Number(grand).toFixed(2)}</b> (≈ ${grandBs} Bs)`
+    );
 
     await resend.emails.send({
       from: fromEmail,
