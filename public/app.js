@@ -626,6 +626,8 @@ function updateDeliveryFields() {
     const val = document.querySelector('input[name="delivery"]:checked')?.value;
     document.getElementById('fields-local').classList.toggle('hidden', val !== 'local');
     document.getElementById('fields-nacional').classList.toggle('hidden', val !== 'nacional');
+    const lecheria = document.getElementById('fields-lecheria');
+    if (lecheria) lecheria.classList.toggle('hidden', val !== 'lecheria');
     updateCheckoutTotal();
 }
 
@@ -708,7 +710,8 @@ async function submitOrder() {
             agencyAddr: document.getElementById('co-agency-addr').value.trim(),
         };
     } else {
-        deliveryLabel = 'Retiro en Tienda';
+        // Lechería — entrega a coordinar con el cliente.
+        deliveryLabel = 'Lechería (a coordinar)';
     }
 
     // Show loading state

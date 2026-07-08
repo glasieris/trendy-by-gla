@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       <p style="margin:4px 0;color:#92400e;"><strong>⚠️ Cobro a destino</strong></p>
     `;
   } else {
-    deliveryHtml = '<p style="margin:4px 0;">Retiro en tienda (previa cita, Lunes–Viernes 10am–5pm).</p>';
+    deliveryHtml = '<p style="margin:4px 0;">Lechería — entrega a coordinar con la tienda.</p>';
   }
 
   // ===== CUSTOMER CONFIRMATION EMAIL =====

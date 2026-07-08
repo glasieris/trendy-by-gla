@@ -380,7 +380,7 @@ const bodyHTML = `
                     <h3 class="font-bold text-base mb-3 text-brand-pink">🚚 Método de Entrega</h3>
                     <div class="space-y-2">
                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-brand-light/50">
-                            <input type="radio" name="delivery" value="pickup" onchange="updateDeliveryFields()" class="text-brand-pink accent-pink-500"> <span class="text-sm font-medium">Retiro en Tienda</span>
+                            <input type="radio" name="delivery" value="lecheria" onchange="updateDeliveryFields()" class="text-brand-pink accent-pink-500"> <span class="text-sm font-medium">Lechería</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-brand-light/50">
                             <input type="radio" name="delivery" value="local" onchange="updateDeliveryFields()" class="accent-pink-500"> <span class="text-sm font-medium">Delivery Local</span>
@@ -388,6 +388,9 @@ const bodyHTML = `
                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-brand-light/50">
                             <input type="radio" name="delivery" value="nacional" onchange="updateDeliveryFields()" class="accent-pink-500"> <span class="text-sm font-medium">Envío Nacional</span>
                         </label>
+                    </div>
+                    <div id="fields-lecheria" class="hidden mt-3">
+                        <div class="bg-brand-light/40 border border-pink-200 rounded-xl p-3 text-sm text-gray-600">A coordinar</div>
                     </div>
                     <div id="fields-local" class="hidden mt-3 space-y-3">
                         <select id="co-zone" onchange="updateCheckoutTotal()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
