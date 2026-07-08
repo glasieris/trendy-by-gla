@@ -607,7 +607,10 @@ function renderCheckoutDetail() {
     const { itemsWithPrice, total } = calculateCartMath();
     const el = document.getElementById('co-order-detail');
     el.innerHTML = itemsWithPrice.map(item => `
-        <div class="flex items-center justify-between gap-2 py-1 border-b border-gray-100 last:border-0">
+        <div class="flex items-center gap-2.5 py-1.5 border-b border-gray-100 last:border-0">
+            <img src="${item.variantImage || getProductImage(products.find(p=>p.id===item.id) || item)}" alt="${item.name}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="hidden w-10 h-10 rounded-lg bg-brand-light items-center justify-center text-lg flex-shrink-0">${getCategoryEmoji(item.category||'')}</div>
             <div class="flex-1 min-w-0">
                 <span class="font-medium text-gray-800">${item.name}</span>
                 ${item.variantLabel ? `<span class="text-gray-500"> · ${item.variantLabel}</span>` : ''}
