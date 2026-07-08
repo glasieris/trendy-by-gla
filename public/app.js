@@ -665,6 +665,18 @@ async function submitOrder() {
     if (!payment) { showToast('Selecciona método de pago', 'info'); return; }
     if (!deliveryType) { showToast('Selecciona método de entrega', 'info'); return; }
 
+    // Zona obligatoria para Delivery Local; agencia obligatoria para Envío Nacional.
+    if (deliveryType === 'local' && !document.getElementById('co-zone').value) {
+        showToast('Selecciona la zona de entrega', 'info');
+        document.getElementById('co-zone').focus();
+        return;
+    }
+    if (deliveryType === 'nacional' && !document.getElementById('co-courier').value) {
+        showToast('Selecciona la agencia de envío', 'info');
+        document.getElementById('co-courier').focus();
+        return;
+    }
+
     const { itemsWithPrice, total } = calculateCartMath();
     const gift = document.getElementById('co-gift').checked;
     const giftMsg = document.getElementById('co-gift-msg').value.trim();
