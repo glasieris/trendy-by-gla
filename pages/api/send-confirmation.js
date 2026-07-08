@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       <p style="margin:4px 0;color:#92400e;"><strong>⚠️ Cobro a destino</strong></p>
     `;
   } else {
-    deliveryHtml = '<p style="margin:4px 0;">Lechería — entrega a coordinar con la tienda.</p>';
+    deliveryHtml = '<p style="margin:4px 0;">Punto de retiro — coordinamos la entrega en Lechería contigo.</p>';
   }
 
   // ===== CUSTOMER CONFIRMATION EMAIL =====

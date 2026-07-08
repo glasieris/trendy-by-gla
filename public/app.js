@@ -607,7 +607,10 @@ function renderCheckoutDetail() {
     const { itemsWithPrice, total } = calculateCartMath();
     const el = document.getElementById('co-order-detail');
     el.innerHTML = itemsWithPrice.map(item => `
-        <div class="flex items-center justify-between gap-2 py-1 border-b border-gray-100 last:border-0">
+        <div class="flex items-center gap-2.5 py-1.5 border-b border-gray-100 last:border-0">
+            <img src="${item.variantImage || getProductImage(products.find(p=>p.id===item.id) || item)}" alt="${item.name}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="hidden w-10 h-10 rounded-lg bg-brand-light items-center justify-center text-lg flex-shrink-0">${getCategoryEmoji(item.category||'')}</div>
             <div class="flex-1 min-w-0">
                 <span class="font-medium text-gray-800">${item.name}</span>
                 ${item.variantLabel ? `<span class="text-gray-500"> · ${item.variantLabel}</span>` : ''}
@@ -628,7 +631,22 @@ function updateDeliveryFields() {
     document.getElementById('fields-nacional').classList.toggle('hidden', val !== 'nacional');
     const lecheria = document.getElementById('fields-lecheria');
     if (lecheria) lecheria.classList.toggle('hidden', val !== 'lecheria');
+    // Al cambiar de método, quita cualquier resaltado de "campo faltante".
+    clearMissing(document.getElementById('co-zone'));
+    clearMissing(document.getElementById('co-courier'));
     updateCheckoutTotal();
+}
+
+// Resalta en rosado un campo requerido que quedó vacío (y lo limpia al corregirlo).
+function markMissing(el) {
+    if (!el) return;
+    el.style.borderColor = '#E91E8C';
+    el.style.boxShadow = '0 0 0 3px rgba(233,30,140,0.25)';
+}
+function clearMissing(el) {
+    if (!el) return;
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
 }
 
 function toggleGift() {
@@ -670,12 +688,14 @@ async function submitOrder() {
     // Zona obligatoria para Delivery Local; agencia obligatoria para Envío Nacional.
     if (deliveryType === 'local' && !document.getElementById('co-zone').value) {
         showToast('Selecciona la zona de entrega', 'info');
-        document.getElementById('co-zone').focus();
+        const z = document.getElementById('co-zone');
+        markMissing(z); z.focus();
         return;
     }
     if (deliveryType === 'nacional' && !document.getElementById('co-courier').value) {
         showToast('Selecciona la agencia de envío', 'info');
-        document.getElementById('co-courier').focus();
+        const c = document.getElementById('co-courier');
+        markMissing(c); c.focus();
         return;
     }
 
@@ -724,8 +744,8 @@ async function submitOrder() {
             agencyAddr: document.getElementById('co-agency-addr').value.trim(),
         };
     } else {
-        // Lechería — entrega a coordinar con el cliente.
-        deliveryLabel = 'Lechería (a coordinar)';
+        // Punto de retiro — se coordina la entrega en Lechería con el cliente.
+        deliveryLabel = 'Punto de retiro — coordinar entrega en Lechería';
     }
 
     // Show loading state
