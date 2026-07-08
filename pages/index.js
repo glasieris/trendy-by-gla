@@ -423,10 +423,11 @@ const bodyHTML = `
                 <div>
                     <label class="flex items-center gap-3 cursor-pointer p-3 bg-brand-light/50 rounded-xl">
                         <input type="checkbox" id="co-gift" onchange="toggleGift()" class="accent-pink-500 w-4 h-4">
-                        <span class="text-sm font-medium">🎁 ¿Es para regalar? (+$1.00 empaque especial)</span>
+                        <span class="text-sm font-medium">🎁 ¿Es para regalar?</span>
                     </label>
-                    <div id="gift-message-wrap" class="hidden mt-3">
-                        <textarea id="co-gift-msg" placeholder="Mensaje para la tarjeta (opcional)" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30 resize-none"></textarea>
+                    <div id="gift-message-wrap" class="hidden mt-3 space-y-3">
+                        <input id="co-gift-recipient" type="text" placeholder="¿Para quién es el regalo? *" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                        <textarea id="co-gift-msg" placeholder="Mensaje de regalo (opcional)" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30 resize-none"></textarea>
                     </div>
                 </div>
             </div>

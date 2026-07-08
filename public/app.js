@@ -648,9 +648,9 @@ function getDeliveryCost() {
 
 function updateCheckoutTotal() {
     const { total } = calculateCartMath();
-    const gift = document.getElementById('co-gift')?.checked ? 1 : 0;
+    // El regalo ya no tiene costo adicional.
     const delivery = getDeliveryCost();
-    const grand = total + gift + delivery;
+    const grand = total + delivery;
     document.getElementById('co-total-display').textContent = `$${grand.toFixed(2)}`;
     document.getElementById('co-total-bs').textContent = `≈ ${(grand * BCV_RATE).toLocaleString('es-VE', {maximumFractionDigits:0})} Bs (BCV ${BCV_RATE})`;
 }
@@ -681,10 +681,24 @@ async function submitOrder() {
 
     const { itemsWithPrice, total } = calculateCartMath();
     const gift = document.getElementById('co-gift').checked;
+    const giftRecipient = document.getElementById('co-gift-recipient').value.trim();
     const giftMsg = document.getElementById('co-gift-msg').value.trim();
+
+    // Si es para regalar, el destinatario es obligatorio.
+    if (gift && !giftRecipient) {
+        showToast('Indica para quién es el regalo', 'info');
+        document.getElementById('co-gift-recipient').focus();
+        return;
+    }
+
     const delivery = getDeliveryCost();
-    const grand = total + (gift ? 1 : 0) + delivery;
+    const grand = total + delivery; // el regalo ya no suma costo
     const orderNum = 'GLA-' + String(Math.floor(1000 + Math.random() * 9000));
+
+    // Guardamos destinatario + mensaje juntos en gift_msg (sin cambiar el esquema).
+    const giftDetails = gift
+        ? ['Para: ' + giftRecipient, giftMsg ? 'Mensaje: ' + giftMsg : ''].filter(Boolean).join('\n')
+        : '';
 
     // Build delivery info
     let deliveryLabel = '';
@@ -737,7 +751,9 @@ async function submitOrder() {
                 subtotal: total,
                 deliveryCost: delivery,
                 gift,
+                giftRecipient,
                 giftMsg,
+                giftDetails,
                 grand,
                 bcvRate: BCV_RATE,
             }),
@@ -780,7 +796,7 @@ function showSuccessModal(items, subtotal, delivery, gift, grand, orderNum) {
 
     let totalsHtml = `<div class="flex justify-between"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>`;
     if (delivery > 0) totalsHtml += `<div class="flex justify-between text-gray-600"><span>Delivery</span><span>$${delivery.toFixed(2)}</span></div>`;
-    if (gift) totalsHtml += `<div class="flex justify-between text-gray-600"><span>Empaque regalo</span><span>$1.00</span></div>`;
+    if (gift) totalsHtml += `<div class="flex justify-between text-gray-600"><span>🎁 Para regalar</span><span>Gratis</span></div>`;
     totalsHtml += `<div class="flex justify-between text-brand-pink font-bold pt-1 border-t border-pink-100"><span>TOTAL</span><span>$${grand.toFixed(2)}</span></div>`;
     totalsHtml += `<div class="text-xs text-gray-400 text-right">≈ ${(grand * BCV_RATE).toLocaleString('es-VE', {maximumFractionDigits:0})} Bs</div>`;
     document.getElementById('success-totals').innerHTML = totalsHtml;

@@ -52,7 +52,11 @@ function OrderCard({ order, onUpdate }) {
                 <span style={{ fontWeight: 600 }}>${Number(item.subtotal).toFixed(2)}</span>
               </div>
             ))}
-            {order.gift && <div style={{ fontSize: 12, color: '#E91E8C', marginTop: 6 }}>🎁 Empaque regalo +$1.00{order.gift_msg ? ` — "${order.gift_msg}"` : ''}</div>}
+            {order.gift && (
+              <div style={{ fontSize: 12, color: '#E91E8C', marginTop: 6, whiteSpace: 'pre-line' }}>
+                🎁 Para regalar{order.gift_msg ? `\n${order.gift_msg}` : ''}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: 13 }}>
