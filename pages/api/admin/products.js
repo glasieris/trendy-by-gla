@@ -5,7 +5,21 @@ export default withAdminAuth(async function handler(req, res) {
   if (req.method === 'GET') {
     const { data, error } = await supabaseAdmin.from('products').select('*').order('category_slug').order('sort_order')
     if (error) return res.status(500).json({ error: error.message })
-    return res.status(200).json(data)
+
+    // Resolve each product's thumbnail from product_images (the source of truth),
+    // falling back to the denormalized image_url. This keeps the admin list in sync
+    // with the gallery even when image_url is stale/null.
+    const { data: images } = await supabaseAdmin
+      .from('product_images')
+      .select('product_id, url, sort_order')
+      .order('sort_order')
+    const firstImage = {}
+    for (const img of images ?? []) {
+      if (!(img.product_id in firstImage)) firstImage[img.product_id] = img.url
+    }
+    const withThumb = data.map(p => ({ ...p, thumb: firstImage[p.id] || p.image_url || null }))
+
+    return res.status(200).json(withThumb)
   }
 
   if (req.method === 'POST') {
