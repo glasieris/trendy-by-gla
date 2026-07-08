@@ -22,6 +22,7 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState({ msg:'', ok:true })
   const imgRef = useRef()
+  const listScrollY = useRef(0) // remembers list scroll position while editing
 
   function showToast(msg, ok=true) {
     setToast({ msg, ok })
@@ -37,6 +38,12 @@ export default function ProductsPage() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  // Restore the list scroll position when returning from the edit/new form, so
+  // saving or going back keeps the user where they were instead of jumping to top.
+  useEffect(() => {
+    if (editing === null) window.scrollTo(0, listScrollY.current)
+  }, [editing])
 
   // Seed the editable label/stock inputs from the loaded variants (merging so
   // in-progress typing on other photos isn't wiped when one photo is saved).
@@ -108,6 +115,7 @@ export default function ProductsPage() {
   }
 
   function openEdit(p) {
+    listScrollY.current = window.scrollY
     setForm({ ...p, price_detal: String(p.price_detal), price_mayor: String(p.price_mayor), min_mayor: String(p.min_mayor) })
     setProductImages([])
     setProductVariants([])
