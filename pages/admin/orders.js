@@ -5,7 +5,7 @@ import AdminLayout from '../../components/admin/AdminLayout'
 const STATUS_LABELS = { nuevo: '🔵 Nuevo', procesando: '🟡 Procesando', listo: '🟢 Listo', enviado: '✅ Enviado' }
 const STATUS_COLORS = { nuevo: '#dbeafe', procesando: '#fef9c3', listo: '#dcfce7', enviado: '#f3f4f6' }
 
-function OrderCard({ order, onUpdate }) {
+function OrderCard({ order, onUpdate, thumbMap }) {
   const [expanded, setExpanded] = useState(false)
   const [status, setStatus] = useState(order.status)
   const [notes, setNotes] = useState(order.notes || '')
@@ -56,12 +56,20 @@ function OrderCard({ order, onUpdate }) {
         <div style={{ borderTop: '1px solid #fce7f3', padding: 16 }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, marginBottom: 6 }}>PRODUCTOS</div>
-            {items.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderBottom: '1px solid #f9fafb' }}>
-                <span>{item.name}{item.variantLabel ? ` · ${item.variantLabel}` : ''} x{item.qty}</span>
-                <span style={{ fontWeight: 600 }}>${Number(item.subtotal).toFixed(2)}</span>
-              </div>
-            ))}
+            {items.map((item, i) => {
+              const thumb = item.variantImage || (thumbMap && thumbMap[item.id]) || ''
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '5px 0', borderBottom: '1px solid #f9fafb' }}>
+                  {thumb ? (
+                    <img src={thumb} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: '#fce7f3' }}
+                      onError={e => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
+                  ) : null}
+                  <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fce7f3', display: thumb ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>🛍️</div>
+                  <span style={{ flex: 1, minWidth: 0 }}>{item.name}{item.variantLabel ? ` · ${item.variantLabel}` : ''} x{item.qty}</span>
+                  <span style={{ fontWeight: 600, flexShrink: 0 }}>${Number(item.subtotal).toFixed(2)}</span>
+                </div>
+              )
+            })}
             {order.gift && (
               <div style={{ fontSize: 12, color: '#E91E8C', marginTop: 6, whiteSpace: 'pre-line' }}>
                 🎁 Para regalar{order.gift_msg ? `\n${order.gift_msg}` : ''}
@@ -123,6 +131,7 @@ function OrderCard({ order, onUpdate }) {
 export default function OrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState([])
+  const [thumbMap, setThumbMap] = useState({})
   const [filter, setFilter] = useState('todos')
   const [loading, setLoading] = useState(true)
 
@@ -134,6 +143,17 @@ export default function OrdersPage() {
     setLoading(false)
   }
 
+  // Product thumbnails for the order detail (id -> thumb), resolved once.
+  async function fetchThumbs() {
+    const res = await fetch('/api/admin/products')
+    if (!res.ok) return
+    const data = await res.json()
+    const map = {}
+    if (Array.isArray(data)) data.forEach(p => { if (p.thumb) map[p.id] = p.thumb })
+    setThumbMap(map)
+  }
+
+  useEffect(() => { fetchThumbs() }, [])
   useEffect(() => { setLoading(true); fetchOrders() }, [filter])
 
   const filters = [
@@ -165,7 +185,7 @@ export default function OrdersPage() {
           <p>No hay pedidos {filter !== 'todos' ? `con estado "${filter}"` : 'aún'}</p>
         </div>
       ) : (
-        orders.map(order => <OrderCard key={order.id} order={order} onUpdate={fetchOrders} />)
+        orders.map(order => <OrderCard key={order.id} order={order} onUpdate={fetchOrders} thumbMap={thumbMap} />)
       )}
     </AdminLayout>
   )
