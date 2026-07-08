@@ -123,6 +123,16 @@ const bodyHTML = `
 
 <!-- Catalog Section -->
 <section id="catalog-section" class="max-w-7xl mx-auto px-4 py-8">
+    <div class="mb-5">
+        <div class="relative max-w-xl">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">🔍</span>
+            <input id="product-search" type="text" oninput="handleSearch(this.value)" autocomplete="off"
+                placeholder="Buscar productos por nombre, categoría..."
+                class="w-full border border-pink-200 rounded-full pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30 bg-white shadow-sm">
+            <button id="search-clear" onclick="clearSearch()" aria-label="Limpiar búsqueda"
+                class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-light text-brand-pink font-bold hover:bg-pink-200">✕</button>
+        </div>
+    </div>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 id="catalog-title" class="font-serif text-2xl font-bold text-gray-800">Todos los Productos</h2>
@@ -130,6 +140,7 @@ const bodyHTML = `
         </div>
         <span id="product-count" class="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm"></span>
     </div>
+    <div id="search-note" class="hidden mb-4 bg-brand-light/60 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-700"></div>
     <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
 </section>
 
