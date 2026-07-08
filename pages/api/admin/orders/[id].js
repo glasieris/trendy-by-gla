@@ -12,5 +12,10 @@ export default withAdminAuth(async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json(data)
   }
+  if (req.method === 'DELETE') {
+    const { error } = await supabaseAdmin.from('orders').delete().eq('id', id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ ok: true })
+  }
   return res.status(405).end()
 })
