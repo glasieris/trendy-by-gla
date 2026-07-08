@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       // Explicit column list (never select internal fields like cost/provider).
       supabase.from('products').select('id, name, category_slug, is_hair, price_detal, price_mayor, min_mayor, description, image_url').eq('active', true).order('sort_order'),
       supabase.from('product_images').select('product_id, url, sort_order').order('sort_order'),
-      supabase.from('product_variants').select('product_id, id, label, image_url, stock').eq('active', true).order('sort_order'),
+      supabase.from('product_variants').select('product_id, id, label, image_url, stock, on_demand').eq('active', true).order('sort_order'),
     ])
 
     const bcv_rate = settingsRes.data?.value ? parseFloat(settingsRes.data.value) : 443.26
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const variantsByProduct = {}
     ;(variantsRes.data ?? []).forEach(v => {
       if (!variantsByProduct[v.product_id]) variantsByProduct[v.product_id] = []
-      variantsByProduct[v.product_id].push({ id: v.id, label: v.label, image: v.image_url, stock: v.stock })
+      variantsByProduct[v.product_id].push({ id: v.id, label: v.label, image: v.image_url, stock: v.stock, on_demand: !!v.on_demand })
     })
 
     const products = (productsRes.data ?? []).map(p => {

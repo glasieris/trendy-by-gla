@@ -475,7 +475,9 @@ function openDetailModal(id) {
             <div class="text-sm font-semibold text-gray-700 mb-2">Elige una opción:</div>
             <div class="flex flex-wrap gap-2">
                 ${p.variants.map((v, i) => {
-                    const agotado = Number(v.stock) <= 0;
+                    // "Bajo pedido" (on_demand) variants are always available, ignoring stock.
+                    const onDemand = !!v.on_demand;
+                    const agotado = !onDemand && Number(v.stock) <= 0;
                     return `
                     <button ${agotado ? 'disabled' : `onclick="selectDetailVariant(${i}, this)"`} id="variant-${i}"
                         class="relative flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 border-gray-200 w-20 transition-all ${agotado ? 'opacity-60 cursor-not-allowed' : 'hover:border-brand-pink cursor-pointer'}"
@@ -485,6 +487,7 @@ function openDetailModal(id) {
                         </div>
                         <span class="text-[11px] text-center leading-tight ${agotado ? 'line-through text-gray-400' : 'text-gray-700'}">${v.label}</span>
                         ${agotado ? `<span class="text-[9px] font-bold text-red-500">Agotado</span>` : ''}
+                        ${onDemand ? `<span class="text-[9px] font-bold text-brand-pink bg-brand-light rounded-full px-1.5 py-0.5 leading-none">Bajo pedido</span>` : ''}
                     </button>`;
                 }).join('')}
             </div>
@@ -546,7 +549,7 @@ function openDetailModal(id) {
 
 function selectDetailVariant(i, btn) {
     const v = detailProduct && detailProduct.variants ? detailProduct.variants[i] : null;
-    if (!v || Number(v.stock) <= 0) return; // agotado / inválido: no seleccionable
+    if (!v || (!v.on_demand && Number(v.stock) <= 0)) return; // agotado / inválido: no seleccionable (bajo pedido siempre disponible)
     detailVariant = v;
     document.getElementById('detail-modal').querySelectorAll('[id^="variant-"]').forEach(el => {
         el.classList.remove('border-brand-pink');

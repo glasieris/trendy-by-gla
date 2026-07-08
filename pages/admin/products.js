@@ -54,7 +54,7 @@ export default function ProductsPage() {
   useEffect(() => {
     setVariantEdits(prev => {
       const seed = { ...prev }
-      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? '') } })
+      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? ''), on_demand: !!v.on_demand } })
       return seed
     })
   }, [productVariants])
@@ -83,11 +83,11 @@ export default function ProductsPage() {
   }
 
   // Upsert the variant for a photo. Empty name removes it (plain gallery photo).
-  async function saveVariant(image_url, label, stock) {
+  async function saveVariant(image_url, label, stock, on_demand) {
     const res = await fetch(`/api/admin/products/${form.id}/variants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url, label, stock: Number(stock || 0) }),
+      body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand }),
     })
     if (res.ok) { await fetchProductVariants(form.id); showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada') }
     else showToast('Error al guardar la variante', false)
@@ -97,17 +97,32 @@ export default function ProductsPage() {
     setVariantEdits(prev => ({ ...prev, [url]: { ...prev[url], [field]: val } }))
   }
 
-  // Save on blur, but only if the name/stock actually changed.
+  // Save on blur, but only if the name/stock/mode actually changed.
   function commitVariant(url) {
     const e = variantEdits[url] || {}
     const label = String(e.label || '').trim()
     const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
+    const onDemand = !!e.on_demand
     const existing = productVariants.find(v => v.image_url === url)
     const prevLabel = String(existing?.label || '').trim()
     const prevStock = existing?.stock ?? 0
-    if (label === prevLabel && stock === prevStock) return
+    const prevOnDemand = !!existing?.on_demand
+    if (label === prevLabel && stock === prevStock && onDemand === prevOnDemand) return
     if (!label && !existing) return
-    saveVariant(url, label, stock)
+    saveVariant(url, label, stock, onDemand)
+  }
+
+  // Flip a variant between "Tengo stock" (on_demand=false) and "Bajo pedido"
+  // (on_demand=true), saving immediately for photos that are already variants.
+  function toggleOnDemand(url) {
+    const e = variantEdits[url] || {}
+    const next = !e.on_demand
+    setEdit(url, 'on_demand', next)
+    const label = String(e.label || '').trim()
+    const existing = productVariants.find(v => v.image_url === url)
+    if (!label && !existing) return // not a variant yet; remember the choice for when it's named
+    const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
+    saveVariant(url, label || existing.label, stock, next)
   }
 
   function openNew() {
@@ -272,7 +287,8 @@ export default function ProductsPage() {
               {productImages.map((img, idx) => {
                 const edit = variantEdits[img.url] || {}
                 const isVariant = String(edit.label || '').trim().length > 0
-                const isAgotado = isVariant && Number(edit.stock || 0) <= 0
+                const onDemand = !!edit.on_demand
+                const isAgotado = isVariant && !onDemand && Number(edit.stock || 0) <= 0
                 const vInput = { width:120, marginTop:5, border:'1.5px solid #fce7f3', borderRadius:8, padding:'6px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none' }
                 return (
                   <div key={img.id} style={{ width:120 }}>
@@ -299,8 +315,19 @@ export default function ProductsPage() {
                       onChange={e => setEdit(img.url, 'stock', e.target.value)}
                       onBlur={() => commitVariant(img.url)}
                       placeholder="Stock"
-                      style={{ ...vInput, marginTop:4 }}
+                      disabled={onDemand}
+                      style={{ ...vInput, marginTop:4, opacity: onDemand ? 0.45 : 1, background: onDemand ? '#f3f4f6' : 'white' }}
                     />
+                    {isVariant && (
+                      <button
+                        type="button"
+                        onClick={() => toggleOnDemand(img.url)}
+                        title="Cambiar entre stock físico y bajo pedido"
+                        style={{ width:120, marginTop:5, border:'1.5px solid', borderColor: onDemand ? '#E91E8C' : '#fce7f3', borderRadius:8, padding:'5px 6px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit', background: onDemand ? '#fce7f3' : 'white', color: onDemand ? '#E91E8C' : '#6b7280' }}
+                      >
+                        {onDemand ? '🕒 Bajo pedido' : '📦 Tengo stock'}
+                      </button>
+                    )}
                     {isAgotado && <div style={{ fontSize:10, color:'#dc2626', fontWeight:700, marginTop:3 }}>● Agotado</div>}
                   </div>
                 )

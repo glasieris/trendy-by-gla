@@ -19,7 +19,7 @@ export default withAdminAuth(async function handler(req, res) {
 
   if (req.method === 'POST') {
     // Upsert a variant for a given photo (image_url).
-    const { image_url, label, stock, sort_order } = req.body
+    const { image_url, label, stock, sort_order, on_demand } = req.body
     if (!image_url) return res.status(400).json({ error: 'image_url requerido' })
 
     const cleanLabel = String(label || '').trim()
@@ -42,6 +42,7 @@ export default withAdminAuth(async function handler(req, res) {
       image_url,
       label: cleanLabel,
       stock: Number(stock || 0),
+      on_demand: !!on_demand,
       sort_order: Number(sort_order || 0),
     }
 
