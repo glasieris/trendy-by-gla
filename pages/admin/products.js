@@ -367,8 +367,8 @@ export default function ProductsPage() {
             {(grouped[cat.slug] || []).map(p => (
               <div key={p.id} style={{ background:'white', borderRadius:14, marginBottom:8, padding:'12px 14px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 2px 6px rgba(0,0,0,0.05)', opacity: p.active ? 1 : 0.5 }}>
                 <div style={{ width:52, height:52, borderRadius:10, overflow:'hidden', background:'#fce7f3', flexShrink:0 }}>
-                  {p.image_url ?
-                    <img src={p.image_url} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                  {p.thumb ?
+                    <img src={p.thumb} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}
                          onError={e => { e.target.style.display='none' }} /> :
                     <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>🛍️</div>}
                 </div>
