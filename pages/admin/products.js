@@ -4,6 +4,9 @@ import AdminLayout from '../../components/admin/AdminLayout'
 
 const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'' }
 
+// Lowercase + strip accents so search matches "corazon" against "Corazón".
+const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+
 function Toast({ msg, ok }) {
   return msg ? <div style={{ position:'fixed', bottom:90, left:'50%', transform:'translateX(-50%)', background: ok ? '#E91E8C' : '#dc2626', color:'white', padding:'10px 20px', borderRadius:12, fontWeight:600, fontSize:14, zIndex:200, whiteSpace:'nowrap' }}>{msg}</div> : null
 }
@@ -13,6 +16,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('') // real-time filter by product name
   const [editing, setEditing] = useState(null) // null | 'new' | product object
   const [form, setForm] = useState(EMPTY)
   const [productImages, setProductImages] = useState([]) // {id, url, sort_order}[]
@@ -363,10 +367,13 @@ export default function ProductsPage() {
     )
   }
 
+  const q = norm(search.trim())
+  const visibleProducts = q ? products.filter(p => norm(p.name).includes(q)) : products
   const grouped = categories.reduce((acc, cat) => {
-    acc[cat.slug] = products.filter(p => p.category_slug === cat.slug)
+    acc[cat.slug] = visibleProducts.filter(p => p.category_slug === cat.slug)
     return acc
   }, {})
+  const noResults = q && visibleProducts.length === 0
 
   return (
     <AdminLayout title="Productos">
@@ -379,11 +386,32 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {loading ? <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Cargando...</div> : (
-        categories.map(cat => (
+      <div style={{ position:'relative', marginBottom:16 }}>
+        <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:15, color:'#9ca3af', pointerEvents:'none' }}>🔍</span>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar producto por nombre..."
+          style={{ width:'100%', border:'1.5px solid #fce7f3', borderRadius:12, padding:'11px 36px', fontSize:14, fontFamily:'Poppins,sans-serif', outline:'none' }}
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'#fce7f3', border:'none', borderRadius:'50%', width:24, height:24, cursor:'pointer', color:'#E91E8C', fontWeight:700, lineHeight:1 }}
+          >×</button>
+        )}
+      </div>
+
+      {loading ? <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Cargando...</div> : noResults ? (
+        <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Sin resultados para “{search.trim()}”.</div>
+      ) : (
+        categories.map(cat => {
+          const items = grouped[cat.slug] || []
+          if (q && items.length === 0) return null
+          return (
           <div key={cat.slug} style={{ marginBottom:20 }}>
             <h3 style={{ fontSize:14, fontWeight:700, color:'#E91E8C', marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>{cat.label}</h3>
-            {(grouped[cat.slug] || []).map(p => (
+            {items.map(p => (
               <div key={p.id} style={{ background:'white', borderRadius:14, marginBottom:8, padding:'12px 14px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 2px 6px rgba(0,0,0,0.05)', opacity: p.active ? 1 : 0.5 }}>
                 <div style={{ width:52, height:52, borderRadius:10, overflow:'hidden', background:'#fce7f3', flexShrink:0 }}>
                   {p.thumb ?
@@ -402,7 +430,8 @@ export default function ProductsPage() {
               </div>
             ))}
           </div>
-        ))
+          )
+        })
       )}
     </AdminLayout>
   )
