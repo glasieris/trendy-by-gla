@@ -48,6 +48,17 @@ export default function ProductsPage() {
     })
   }, [productVariants])
 
+  // Default the Stock field to 1 for photos that aren't variants yet, so naming
+  // one to create a new variant starts it in stock instead of "Agotado" (0).
+  // Existing variants are seeded above and win via the `in seed` guard.
+  useEffect(() => {
+    setVariantEdits(prev => {
+      const seed = { ...prev }
+      productImages.forEach(img => { if (!(img.url in seed)) seed[img.url] = { label: '', stock: '1' } })
+      return seed
+    })
+  }, [productImages])
+
   async function fetchProductImages(productId) {
     const res = await fetch(`/api/admin/products/${productId}/images`)
     if (res.ok) setProductImages(await res.json())
