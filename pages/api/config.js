@@ -7,7 +7,8 @@ export default async function handler(req, res) {
     const [settingsRes, categoriesRes, productsRes, imagesRes, variantsRes] = await Promise.all([
       supabase.from('settings').select('value').eq('key', 'bcv_rate').single(),
       supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('products').select('*').eq('active', true).order('sort_order'),
+      // Explicit column list (never select internal fields like cost/provider).
+      supabase.from('products').select('id, name, category_slug, is_hair, price_detal, price_mayor, min_mayor, description, image_url').eq('active', true).order('sort_order'),
       supabase.from('product_images').select('product_id, url, sort_order').order('sort_order'),
       supabase.from('product_variants').select('product_id, id, label, image_url, stock').eq('active', true).order('sort_order'),
     ])

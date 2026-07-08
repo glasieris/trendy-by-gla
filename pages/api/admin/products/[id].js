@@ -5,7 +5,7 @@ export default withAdminAuth(async function handler(req, res) {
   const { id } = req.query
 
   if (req.method === 'PATCH') {
-    const allowed = ['name','category_slug','is_hair','has_fabrics','price_detal','price_mayor','min_mayor','description','image_url','active','sort_order']
+    const allowed = ['name','category_slug','is_hair','has_fabrics','price_detal','price_mayor','min_mayor','description','image_url','active','sort_order','cost','provider']
     const updates = {}
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key]

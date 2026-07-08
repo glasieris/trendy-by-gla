@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/admin/AdminLayout'
 
-const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'' }
+const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'', cost:'', provider:'' }
 
 // Lowercase + strip accents so search matches "corazon" against "Corazón".
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
@@ -120,7 +120,7 @@ export default function ProductsPage() {
 
   function openEdit(p) {
     listScrollY.current = window.scrollY
-    setForm({ ...p, price_detal: String(p.price_detal), price_mayor: String(p.price_mayor), min_mayor: String(p.min_mayor) })
+    setForm({ ...p, price_detal: String(p.price_detal), price_mayor: String(p.price_mayor), min_mayor: String(p.min_mayor), cost: p.cost != null ? String(p.cost) : '', provider: p.provider || '' })
     setProductImages([])
     setProductVariants([])
     setVariantEdits({})
@@ -205,6 +205,8 @@ export default function ProductsPage() {
       price_detal: parseFloat(form.price_detal),
       price_mayor: parseFloat(form.price_mayor),
       min_mayor: parseInt(form.min_mayor) || 999,
+      cost: form.cost === '' || form.cost == null ? null : parseFloat(form.cost),
+      provider: (form.provider || '').trim() || null,
     }
 
     let res
@@ -357,6 +359,22 @@ export default function ProductsPage() {
           <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, cursor:'pointer' }}>
             <input type="checkbox" checked={form.is_hair} onChange={e => setForm(f => ({...f, is_hair: e.target.checked}))} /> Es accesorio de cabello
           </label>
+        </div>
+
+        {/* Internal-only fields — never exposed to the storefront/public API */}
+        <div style={{ marginTop:20, border:'1.5px dashed #d1d5db', borderRadius:12, padding:'14px', background:'#f9fafb' }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#6b7280', marginBottom:2 }}>🔒 Información interna</div>
+          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:12 }}>No visible para clientes. Solo para el panel de administración.</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div>
+              <label style={label}>Costo ($)</label>
+              <input style={inp} type="number" step="0.01" value={form.cost} onChange={e => setForm(f => ({...f, cost: e.target.value}))} placeholder="0.00" />
+            </div>
+            <div>
+              <label style={label}>Proveedor</label>
+              <input style={inp} value={form.provider} onChange={e => setForm(f => ({...f, provider: e.target.value}))} placeholder="Ej: Proveedor X" />
+            </div>
+          </div>
         </div>
 
         <button onClick={handleSave} disabled={saving}

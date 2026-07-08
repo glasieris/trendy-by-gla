@@ -23,7 +23,7 @@ export default withAdminAuth(async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { id, name, category_slug, is_hair, has_fabrics, price_detal, price_mayor, min_mayor, description, image_url } = req.body
+    const { id, name, category_slug, is_hair, has_fabrics, price_detal, price_mayor, min_mayor, description, image_url, cost, provider } = req.body
     if (!id || !name || !category_slug || price_detal == null || price_mayor == null) {
       return res.status(400).json({ error: 'Faltan campos requeridos' })
     }
@@ -34,6 +34,8 @@ export default withAdminAuth(async function handler(req, res) {
       id, name, category_slug, is_hair: !!is_hair, has_fabrics: !!has_fabrics,
       price_detal, price_mayor, min_mayor: min_mayor ?? 999,
       description: description || '', image_url: image_url || null,
+      cost: cost == null || cost === '' ? null : cost,
+      provider: provider || null,
       sort_order, active: true
     }).select().single()
     if (error) return res.status(500).json({ error: error.message })
