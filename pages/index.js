@@ -393,7 +393,7 @@ const bodyHTML = `
                         <div class="bg-brand-light/40 border border-pink-200 rounded-xl p-3 text-sm text-gray-600">A coordinar</div>
                     </div>
                     <div id="fields-local" class="hidden mt-3 space-y-3">
-                        <select id="co-zone" onchange="updateCheckoutTotal()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                        <select id="co-zone" onchange="clearMissing(this);updateCheckoutTotal()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                             <option value="">Selecciona la zona...</option>
                             <option value="Barcelona|3">Barcelona — $3.00</option>
                             <option value="Puerto La Cruz|3">Puerto La Cruz — $3.00</option>
@@ -404,7 +404,7 @@ const bodyHTML = `
                         <input id="co-schedule" type="text" placeholder="Horario disponible para recibir (Ej: Lunes a Viernes 2pm-6pm)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                     </div>
                     <div id="fields-nacional" class="hidden mt-3 space-y-3">
-                        <select id="co-courier" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                        <select id="co-courier" onchange="clearMissing(this)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                             <option value="">Selecciona la agencia...</option>
                             <option>MRW</option>
                             <option>Zoom</option>

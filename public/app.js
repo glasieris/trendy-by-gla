@@ -631,7 +631,22 @@ function updateDeliveryFields() {
     document.getElementById('fields-nacional').classList.toggle('hidden', val !== 'nacional');
     const lecheria = document.getElementById('fields-lecheria');
     if (lecheria) lecheria.classList.toggle('hidden', val !== 'lecheria');
+    // Al cambiar de método, quita cualquier resaltado de "campo faltante".
+    clearMissing(document.getElementById('co-zone'));
+    clearMissing(document.getElementById('co-courier'));
     updateCheckoutTotal();
+}
+
+// Resalta en rosado un campo requerido que quedó vacío (y lo limpia al corregirlo).
+function markMissing(el) {
+    if (!el) return;
+    el.style.borderColor = '#E91E8C';
+    el.style.boxShadow = '0 0 0 3px rgba(233,30,140,0.25)';
+}
+function clearMissing(el) {
+    if (!el) return;
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
 }
 
 function toggleGift() {
@@ -673,12 +688,14 @@ async function submitOrder() {
     // Zona obligatoria para Delivery Local; agencia obligatoria para Envío Nacional.
     if (deliveryType === 'local' && !document.getElementById('co-zone').value) {
         showToast('Selecciona la zona de entrega', 'info');
-        document.getElementById('co-zone').focus();
+        const z = document.getElementById('co-zone');
+        markMissing(z); z.focus();
         return;
     }
     if (deliveryType === 'nacional' && !document.getElementById('co-courier').value) {
         showToast('Selecciona la agencia de envío', 'info');
-        document.getElementById('co-courier').focus();
+        const c = document.getElementById('co-courier');
+        markMissing(c); c.focus();
         return;
     }
 
