@@ -836,6 +836,14 @@ function closeSuccessModal() {
 // ===== MISC =====
 function scrollToTop() { window.scrollTo({top:0, behavior:'smooth'}); }
 
+// Show the "back to top" button once the customer has scrolled past half the page.
+function updateBackToTop() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
+    const half = (document.documentElement.scrollHeight - window.innerHeight) / 2;
+    btn.classList.toggle('hidden', window.scrollY <= half);
+}
+
 function toggleMobileMenu() {
     document.getElementById('mobile-menu').classList.toggle('hidden');
 }
@@ -866,5 +874,5 @@ document.addEventListener('click', (e) => {
 
 // ===== INIT =====
 updateCartBadge();
-window.addEventListener('scroll', () => updateCartFloat());
+window.addEventListener('scroll', () => { updateCartFloat(); updateBackToTop(); });
 initApp();
