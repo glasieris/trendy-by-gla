@@ -724,8 +724,8 @@ async function submitOrder() {
             agencyAddr: document.getElementById('co-agency-addr').value.trim(),
         };
     } else {
-        // Lechería — entrega a coordinar con el cliente.
-        deliveryLabel = 'Lechería (a coordinar)';
+        // Punto de retiro — se coordina la entrega en Lechería con el cliente.
+        deliveryLabel = 'Punto de retiro — coordinar entrega en Lechería';
     }
 
     // Show loading state
