@@ -10,6 +10,7 @@ function OrderCard({ order, onUpdate }) {
   const [status, setStatus] = useState(order.status)
   const [notes, setNotes] = useState(order.notes || '')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]')
 
@@ -22,6 +23,15 @@ function OrderCard({ order, onUpdate }) {
     })
     setSaving(false)
     if (res.ok) onUpdate()
+  }
+
+  async function deleteOrder() {
+    if (!confirm(`¿Eliminar el pedido ${order.order_num} de ${order.customer_name}? Esta acción no se puede deshacer.`)) return
+    setDeleting(true)
+    const res = await fetch(`/api/admin/orders/${order.id}`, { method: 'DELETE' })
+    setDeleting(false)
+    if (res.ok) onUpdate()
+    else alert('No se pudo eliminar el pedido. Intenta de nuevo.')
   }
 
   const date = new Date(order.created_at).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -52,7 +62,11 @@ function OrderCard({ order, onUpdate }) {
                 <span style={{ fontWeight: 600 }}>${Number(item.subtotal).toFixed(2)}</span>
               </div>
             ))}
-            {order.gift && <div style={{ fontSize: 12, color: '#E91E8C', marginTop: 6 }}>🎁 Empaque regalo +$1.00{order.gift_msg ? ` — "${order.gift_msg}"` : ''}</div>}
+            {order.gift && (
+              <div style={{ fontSize: 12, color: '#E91E8C', marginTop: 6, whiteSpace: 'pre-line' }}>
+                🎁 Para regalar{order.gift_msg ? `\n${order.gift_msg}` : ''}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: 13 }}>
@@ -95,6 +109,11 @@ function OrderCard({ order, onUpdate }) {
               💬 WhatsApp
             </a>
           </div>
+
+          <button onClick={deleteOrder} disabled={deleting}
+            style={{ width: '100%', marginTop: 8, background: 'white', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 12, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+            {deleting ? 'Eliminando...' : '🗑️ Eliminar pedido'}
+          </button>
         </div>
       )}
     </div>

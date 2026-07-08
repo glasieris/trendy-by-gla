@@ -123,6 +123,16 @@ const bodyHTML = `
 
 <!-- Catalog Section -->
 <section id="catalog-section" class="max-w-7xl mx-auto px-4 py-8">
+    <div class="mb-5">
+        <div class="relative max-w-xl">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">🔍</span>
+            <input id="product-search" type="text" oninput="handleSearch(this.value)" autocomplete="off"
+                placeholder="Buscar productos por nombre, categoría..."
+                class="w-full border border-pink-200 rounded-full pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30 bg-white shadow-sm">
+            <button id="search-clear" onclick="clearSearch()" aria-label="Limpiar búsqueda"
+                class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-light text-brand-pink font-bold hover:bg-pink-200">✕</button>
+        </div>
+    </div>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 id="catalog-title" class="font-serif text-2xl font-bold text-gray-800">Todos los Productos</h2>
@@ -130,6 +140,7 @@ const bodyHTML = `
         </div>
         <span id="product-count" class="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm"></span>
     </div>
+    <div id="search-note" class="hidden mb-4 bg-brand-light/60 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-700"></div>
     <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
 </section>
 
@@ -369,7 +380,7 @@ const bodyHTML = `
                     <h3 class="font-bold text-base mb-3 text-brand-pink">🚚 Método de Entrega</h3>
                     <div class="space-y-2">
                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-brand-light/50">
-                            <input type="radio" name="delivery" value="pickup" onchange="updateDeliveryFields()" class="text-brand-pink accent-pink-500"> <span class="text-sm font-medium">Retiro en Tienda</span>
+                            <input type="radio" name="delivery" value="lecheria" onchange="updateDeliveryFields()" class="text-brand-pink accent-pink-500"> <span class="text-sm font-medium">Lechería</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-brand-light/50">
                             <input type="radio" name="delivery" value="local" onchange="updateDeliveryFields()" class="accent-pink-500"> <span class="text-sm font-medium">Delivery Local</span>
@@ -377,6 +388,9 @@ const bodyHTML = `
                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-brand-light/50">
                             <input type="radio" name="delivery" value="nacional" onchange="updateDeliveryFields()" class="accent-pink-500"> <span class="text-sm font-medium">Envío Nacional</span>
                         </label>
+                    </div>
+                    <div id="fields-lecheria" class="hidden mt-3">
+                        <div class="bg-brand-light/40 border border-pink-200 rounded-xl p-3 text-sm text-gray-600">A coordinar</div>
                     </div>
                     <div id="fields-local" class="hidden mt-3 space-y-3">
                         <select id="co-zone" onchange="updateCheckoutTotal()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
@@ -409,10 +423,11 @@ const bodyHTML = `
                 <div>
                     <label class="flex items-center gap-3 cursor-pointer p-3 bg-brand-light/50 rounded-xl">
                         <input type="checkbox" id="co-gift" onchange="toggleGift()" class="accent-pink-500 w-4 h-4">
-                        <span class="text-sm font-medium">🎁 ¿Es para regalar? (+$1.00 empaque especial)</span>
+                        <span class="text-sm font-medium">🎁 ¿Es para regalar?</span>
                     </label>
-                    <div id="gift-message-wrap" class="hidden mt-3">
-                        <textarea id="co-gift-msg" placeholder="Mensaje para la tarjeta (opcional)" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30 resize-none"></textarea>
+                    <div id="gift-message-wrap" class="hidden mt-3 space-y-3">
+                        <input id="co-gift-recipient" type="text" placeholder="¿Para quién es el regalo? *" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                        <textarea id="co-gift-msg" placeholder="Mensaje de regalo (opcional)" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30 resize-none"></textarea>
                     </div>
                 </div>
             </div>

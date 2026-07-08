@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const {
     orderNum, customerName, customerPhone,
     payment, deliveryType, deliveryLabel, deliveryInfo,
-    items, subtotal, deliveryCost, gift, giftMsg, grand, bcvRate,
+    items, subtotal, deliveryCost, gift, giftRecipient, giftMsg, giftDetails, grand, bcvRate,
   } = req.body;
 
   if (!orderNum || !items?.length) {
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       <p style="margin:4px 0;color:#92400e;"><strong>⚠️ Cobro a destino</strong></p>
     `;
   } else {
-    deliveryHtml = '<p style="margin:4px 0;">Retiro en tienda (previa cita, Lunes–Viernes 10am–5pm).</p>';
+    deliveryHtml = '<p style="margin:4px 0;">Lechería — entrega a coordinar con la tienda.</p>';
   }
 
   // ===== CUSTOMER CONFIRMATION EMAIL =====
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
           <tr><td style="padding:4px 4px;color:#6b7280;font-size:14px;">Subtotal</td><td style="padding:4px 4px;text-align:right;font-size:14px;">$${subtotal.toFixed(2)}</td></tr>
           ${deliveryCost > 0 ? `<tr><td style="padding:4px 4px;color:#6b7280;font-size:14px;">Delivery</td><td style="padding:4px 4px;text-align:right;font-size:14px;">$${deliveryCost.toFixed(2)}</td></tr>` : ''}
-          ${gift ? `<tr><td style="padding:4px 4px;color:#6b7280;font-size:14px;">Empaque regalo</td><td style="padding:4px 4px;text-align:right;font-size:14px;">$1.00</td></tr>` : ''}
+          ${gift ? `<tr><td style="padding:4px 4px;color:#6b7280;font-size:14px;">🎁 Para regalar</td><td style="padding:4px 4px;text-align:right;font-size:14px;">Gratis</td></tr>` : ''}
           <tr>
             <td style="padding:12px 4px 4px;border-top:2px solid #fce7f3;color:#E91E8C;font-weight:700;font-size:15px;">TOTAL</td>
             <td style="padding:12px 4px 4px;border-top:2px solid #fce7f3;text-align:right;color:#E91E8C;font-weight:800;font-size:20px;">$${grand.toFixed(2)}</td>
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
           <h4 style="margin:0 0 6px;color:#374151;font-size:14px;font-weight:700;">💳 Método de Pago</h4>
           <p style="margin:0;color:#6b7280;font-size:14px;">${payment}</p>
         </div>
-        ${gift && giftMsg ? `<div style="background:#fdf2f8;border-radius:12px;padding:16px;margin-bottom:16px;"><p style="margin:0 0 6px;color:#E91E8C;font-weight:700;font-size:14px;">🎁 Tarjeta de regalo</p><p style="margin:0;color:#374151;font-size:14px;">${giftMsg}</p></div>` : ''}
+        ${gift ? `<div style="background:#fdf2f8;border-radius:12px;padding:16px;margin-bottom:16px;"><p style="margin:0 0 6px;color:#E91E8C;font-weight:700;font-size:14px;">🎁 Para regalar</p>${giftRecipient ? `<p style="margin:0 0 4px;color:#374151;font-size:14px;"><strong>Para:</strong> ${giftRecipient}</p>` : ''}${giftMsg ? `<p style="margin:0;color:#374151;font-size:14px;"><strong>Mensaje:</strong> ${giftMsg}</p>` : ''}</div>` : ''}
       </td>
     </tr>
     <tr>
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
         <h3 style="color:#374151;font-size:14px;font-weight:700;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">🚚 Entrega: ${deliveryLabel}</h3>
         <div style="color:#374151;font-size:14px;">${deliveryHtml}</div>
 
-        ${gift ? `<p style="margin:16px 0 4px;font-size:14px;"><strong>🎁 Empaque regalo</strong>${giftMsg ? `: "${giftMsg}"` : ''}</p>` : ''}
+        ${gift ? `<p style="margin:16px 0 4px;font-size:14px;"><strong>🎁 Para regalar</strong>${giftRecipient ? ` — Para: ${giftRecipient}` : ''}${giftMsg ? ` · Mensaje: "${giftMsg}"` : ''}</p>` : ''}
       </td>
     </tr>
     <tr>
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
       subtotal,
       delivery_cost: deliveryCost,
       gift: !!gift,
-      gift_msg: giftMsg || null,
+      gift_msg: (gift ? (giftDetails || (giftRecipient ? `Para: ${giftRecipient}` : giftMsg)) : null) || null,
       grand,
       status: 'nuevo',
     }).then(({ error }) => { if (error) console.error('Supabase order save error:', error) });
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
       `💳 ${esc(payment)}\n` +
       `🚚 ${esc(deliveryLabel)}\n\n` +
       `${itemLines}\n\n` +
-      (gift ? `🎁 Empaque regalo${giftMsg ? `: "${esc(giftMsg)}"` : ''}\n` : '') +
+      (gift ? `🎁 Para regalar${giftRecipient ? ` — Para: ${esc(giftRecipient)}` : ''}${giftMsg ? `\n📝 ${esc(giftMsg)}` : ''}\n` : '') +
       `<b>Total: $${Number(grand).toFixed(2)}</b> (≈ ${grandBs} Bs)`
     );
 

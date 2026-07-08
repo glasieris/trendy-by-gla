@@ -148,6 +148,157 @@ function getCategoryEmoji(cat) {
     return '🛍️';
 }
 
+// Build the HTML for a single product card (shared by the category view and
+// the search results so both stay visually identical).
+function productCardHTML(p) {
+    const cat = p.category || p.category_slug || '';
+    const mayorBadge = !hasMayoreo(p) ? ''
+        : currentCategory === 'Al Mayor'
+        ? `<div class="text-xs text-green-700 font-medium">Mayor: $${Number(p.price_mayor).toFixed(2)} (${p.min_mayor}+ uds)</div>`
+        : `<div class="text-xs text-gray-400">Mayor: $${Number(p.price_mayor).toFixed(2)} · ${p.min_mayor}+ uds</div>`;
+    const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
+    return `
+    <div class="product-card bg-white rounded-2xl shadow-md overflow-hidden group flex flex-col">
+        <div class="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer" onclick="openDetailModal('${p.id}')">
+            <img src="${getProductImage(p)}" alt="${p.name}" class="product-img w-full h-full object-cover"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="hidden w-full h-full items-center justify-center bg-gradient-to-br from-brand-light to-pink-200 text-4xl">
+                ${getCategoryEmoji(cat)}
+            </div>
+        </div>
+        <div class="p-3 flex flex-col flex-1">
+            <span class="text-xs text-brand-pink font-medium mb-1">${categoryLabels[cat] || cat}</span>
+            <h3 class="font-semibold text-sm text-gray-800 mb-1 leading-tight flex-1">${p.name}</h3>
+            <div class="text-brand-pink font-bold text-base">$${Number(p.price_detal).toFixed(2)} <span class="text-xs font-normal text-gray-500">Detal</span></div>
+            ${mayorBadge}
+            <div class="text-xs text-gray-400 mb-3">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs</div>
+            <button onclick="quickAdd('${p.id}')" class="w-full bg-gray-900 text-white py-2 rounded-xl text-xs font-bold hover:bg-brand-pink transition-colors">
+                Agregar
+            </button>
+        </div>
+    </div>`;
+}
+
+// ===== SEARCH (fuzzy, typo-tolerant) =====
+// Lowercase + strip accents so "corazon" matches "Corazón".
+function normText(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+
+// Classic Levenshtein edit distance (small strings, fine for client-side use).
+function levenshtein(a, b) {
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        let cur = [i];
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+        }
+        prev = cur;
+    }
+    return prev[b.length];
+}
+
+// Score a product against a normalized token. Returns:
+//   2 = exact-quality (substring hit, or ≤1 typo away from a name word)
+//   1 = fuzzy hit (within edit-distance tolerance of any word)
+//   0 = miss
+function tokenQuality(token, nameWords, hayWords, haystack) {
+    if (haystack.includes(token)) return 2;
+    for (const w of nameWords) {
+        if (levenshtein(token, w) <= 1) return 2;
+    }
+    const tol = token.length <= 4 ? 1 : token.length <= 7 ? 2 : 3;
+    let best = Infinity;
+    for (const w of hayWords) {
+        const d = levenshtein(token, w);
+        if (d < best) best = d;
+        if (best === 0) break;
+    }
+    return best <= tol ? 1 : 0;
+}
+
+// Search by name + category + description combined, with typo tolerance.
+// Returns { mode: 'exact' | 'related', list }. Never returns an empty list for
+// a non-empty query — falls back to related products so the UI is never blank.
+function searchProducts(query) {
+    const q = normText(query.trim());
+    const tokens = q.split(/\s+/).filter(Boolean);
+    if (!tokens.length) return { mode: 'exact', list: products };
+
+    const scored = products.map(p => {
+        const catLabel = categoryLabels[p.category_slug || p.category] || '';
+        const name = normText(p.name);
+        const haystack = normText([p.name, catLabel, p.description].filter(Boolean).join(' '));
+        const nameWords = name.split(/\s+/).filter(Boolean);
+        const hayWords = haystack.split(/\s+/).filter(Boolean);
+        let score = 0, minQuality = 2;
+        for (const t of tokens) {
+            const qy = tokenQuality(t, nameWords, hayWords, haystack);
+            if (qy < minQuality) minQuality = qy;
+            score += qy * 10;
+            if (name.includes(t)) score += 5; // prefer name matches over description
+        }
+        return { p, score, minQuality };
+    });
+
+    const exact = scored.filter(s => s.minQuality === 2).sort((a, b) => b.score - a.score);
+    if (exact.length) return { mode: 'exact', list: exact.map(s => s.p) };
+
+    const fuzzy = scored.filter(s => s.minQuality >= 1).sort((a, b) => b.score - a.score);
+    if (fuzzy.length) return { mode: 'related', list: fuzzy.map(s => s.p) };
+
+    // Nothing matched even loosely: still show something useful.
+    const fallback = [...products].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es')).slice(0, 8);
+    return { mode: 'related', list: fallback };
+}
+
+let searchActive = false;
+
+function handleSearch(value) {
+    const q = (value || '').trim();
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+    if (!q) { clearSearch(); return; }
+    searchActive = true;
+    const { mode, list } = searchProducts(q);
+    renderSearchResults(q, mode, list);
+}
+
+function clearSearch() {
+    searchActive = false;
+    const input = document.getElementById('product-search');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    const note = document.getElementById('search-note');
+    if (note) note.classList.add('hidden');
+    renderProducts();
+}
+
+function renderSearchResults(query, mode, list) {
+    document.getElementById('catalog-title').textContent = mode === 'exact'
+        ? `Resultados para "${query}"`
+        : 'Quizás te interese';
+    document.getElementById('catalog-subtitle').textContent = '';
+    document.getElementById('product-count').textContent = `${list.length} producto${list.length !== 1 ? 's' : ''}`;
+
+    const note = document.getElementById('search-note');
+    if (note) {
+        if (mode === 'related') {
+            note.innerHTML = `🔎 No encontramos <strong>"${query}"</strong> exactamente, pero esto podría interesarte:`;
+            note.classList.remove('hidden');
+        } else {
+            note.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('product-grid').innerHTML = list.map(productCardHTML).join('');
+}
+
 function renderProducts() {
     let list = currentCategory === 'All' ? products
         : currentCategory === 'Al Mayor' ? products.filter(hasMayoreo)
@@ -168,38 +319,19 @@ function renderProducts() {
 
     document.getElementById('product-count').textContent = `${list.length} producto${list.length !== 1 ? 's' : ''}`;
 
-    document.getElementById('product-grid').innerHTML = list.map(p => {
-        const cat = p.category || p.category_slug || '';
-        const mayorBadge = !hasMayoreo(p) ? ''
-            : currentCategory === 'Al Mayor'
-            ? `<div class="text-xs text-green-700 font-medium">Mayor: $${Number(p.price_mayor).toFixed(2)} (${p.min_mayor}+ uds)</div>`
-            : `<div class="text-xs text-gray-400">Mayor: $${Number(p.price_mayor).toFixed(2)} · ${p.min_mayor}+ uds</div>`;
-        const bsPrice = (Number(p.price_detal) * BCV_RATE).toFixed(0);
-        return `
-        <div class="product-card bg-white rounded-2xl shadow-md overflow-hidden group flex flex-col">
-            <div class="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer" onclick="openDetailModal('${p.id}')">
-                <img src="${getProductImage(p)}" alt="${p.name}" class="product-img w-full h-full object-cover"
-                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <div class="hidden w-full h-full items-center justify-center bg-gradient-to-br from-brand-light to-pink-200 text-4xl">
-                    ${getCategoryEmoji(cat)}
-                </div>
-            </div>
-            <div class="p-3 flex flex-col flex-1">
-                <span class="text-xs text-brand-pink font-medium mb-1">${categoryLabels[cat] || cat}</span>
-                <h3 class="font-semibold text-sm text-gray-800 mb-1 leading-tight flex-1">${p.name}</h3>
-                <div class="text-brand-pink font-bold text-base">$${Number(p.price_detal).toFixed(2)} <span class="text-xs font-normal text-gray-500">Detal</span></div>
-                ${mayorBadge}
-                <div class="text-xs text-gray-400 mb-3">≈ ${Number(bsPrice).toLocaleString('es-VE')} Bs</div>
-                <button onclick="quickAdd('${p.id}')" class="w-full bg-gray-900 text-white py-2 rounded-xl text-xs font-bold hover:bg-brand-pink transition-colors">
-                    Agregar
-                </button>
-            </div>
-        </div>`;
-    }).join('');
+    document.getElementById('product-grid').innerHTML = list.map(productCardHTML).join('');
 }
 
 function filterCategory(cat) {
     currentCategory = cat;
+    // Leaving search mode: clear the search box and its note so the category view is clean.
+    const input = document.getElementById('product-search');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    const note = document.getElementById('search-note');
+    if (note) note.classList.add('hidden');
+    searchActive = false;
     renderCategoryPills();
     renderProducts();
     document.getElementById('catalog-section').scrollIntoView({behavior:'smooth', block:'start'});
@@ -494,6 +626,8 @@ function updateDeliveryFields() {
     const val = document.querySelector('input[name="delivery"]:checked')?.value;
     document.getElementById('fields-local').classList.toggle('hidden', val !== 'local');
     document.getElementById('fields-nacional').classList.toggle('hidden', val !== 'nacional');
+    const lecheria = document.getElementById('fields-lecheria');
+    if (lecheria) lecheria.classList.toggle('hidden', val !== 'lecheria');
     updateCheckoutTotal();
 }
 
@@ -514,9 +648,9 @@ function getDeliveryCost() {
 
 function updateCheckoutTotal() {
     const { total } = calculateCartMath();
-    const gift = document.getElementById('co-gift')?.checked ? 1 : 0;
+    // El regalo ya no tiene costo adicional.
     const delivery = getDeliveryCost();
-    const grand = total + gift + delivery;
+    const grand = total + delivery;
     document.getElementById('co-total-display').textContent = `$${grand.toFixed(2)}`;
     document.getElementById('co-total-bs').textContent = `≈ ${(grand * BCV_RATE).toLocaleString('es-VE', {maximumFractionDigits:0})} Bs (BCV ${BCV_RATE})`;
 }
@@ -533,12 +667,38 @@ async function submitOrder() {
     if (!payment) { showToast('Selecciona método de pago', 'info'); return; }
     if (!deliveryType) { showToast('Selecciona método de entrega', 'info'); return; }
 
+    // Zona obligatoria para Delivery Local; agencia obligatoria para Envío Nacional.
+    if (deliveryType === 'local' && !document.getElementById('co-zone').value) {
+        showToast('Selecciona la zona de entrega', 'info');
+        document.getElementById('co-zone').focus();
+        return;
+    }
+    if (deliveryType === 'nacional' && !document.getElementById('co-courier').value) {
+        showToast('Selecciona la agencia de envío', 'info');
+        document.getElementById('co-courier').focus();
+        return;
+    }
+
     const { itemsWithPrice, total } = calculateCartMath();
     const gift = document.getElementById('co-gift').checked;
+    const giftRecipient = document.getElementById('co-gift-recipient').value.trim();
     const giftMsg = document.getElementById('co-gift-msg').value.trim();
+
+    // Si es para regalar, el destinatario es obligatorio.
+    if (gift && !giftRecipient) {
+        showToast('Indica para quién es el regalo', 'info');
+        document.getElementById('co-gift-recipient').focus();
+        return;
+    }
+
     const delivery = getDeliveryCost();
-    const grand = total + (gift ? 1 : 0) + delivery;
+    const grand = total + delivery; // el regalo ya no suma costo
     const orderNum = 'GLA-' + String(Math.floor(1000 + Math.random() * 9000));
+
+    // Guardamos destinatario + mensaje juntos en gift_msg (sin cambiar el esquema).
+    const giftDetails = gift
+        ? ['Para: ' + giftRecipient, giftMsg ? 'Mensaje: ' + giftMsg : ''].filter(Boolean).join('\n')
+        : '';
 
     // Build delivery info
     let deliveryLabel = '';
@@ -564,7 +724,8 @@ async function submitOrder() {
             agencyAddr: document.getElementById('co-agency-addr').value.trim(),
         };
     } else {
-        deliveryLabel = 'Retiro en Tienda';
+        // Lechería — entrega a coordinar con el cliente.
+        deliveryLabel = 'Lechería (a coordinar)';
     }
 
     // Show loading state
@@ -590,7 +751,9 @@ async function submitOrder() {
                 subtotal: total,
                 deliveryCost: delivery,
                 gift,
+                giftRecipient,
                 giftMsg,
+                giftDetails,
                 grand,
                 bcvRate: BCV_RATE,
             }),
@@ -633,7 +796,7 @@ function showSuccessModal(items, subtotal, delivery, gift, grand, orderNum) {
 
     let totalsHtml = `<div class="flex justify-between"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>`;
     if (delivery > 0) totalsHtml += `<div class="flex justify-between text-gray-600"><span>Delivery</span><span>$${delivery.toFixed(2)}</span></div>`;
-    if (gift) totalsHtml += `<div class="flex justify-between text-gray-600"><span>Empaque regalo</span><span>$1.00</span></div>`;
+    if (gift) totalsHtml += `<div class="flex justify-between text-gray-600"><span>🎁 Para regalar</span><span>Gratis</span></div>`;
     totalsHtml += `<div class="flex justify-between text-brand-pink font-bold pt-1 border-t border-pink-100"><span>TOTAL</span><span>$${grand.toFixed(2)}</span></div>`;
     totalsHtml += `<div class="text-xs text-gray-400 text-right">≈ ${(grand * BCV_RATE).toLocaleString('es-VE', {maximumFractionDigits:0})} Bs</div>`;
     document.getElementById('success-totals').innerHTML = totalsHtml;
