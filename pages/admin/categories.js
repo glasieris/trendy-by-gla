@@ -5,6 +5,7 @@ import AdminLayout from '../../components/admin/AdminLayout'
 export default function CategoriesPage() {
   const router = useRouter()
   const [cats, setCats] = useState([])
+  const [packaging, setPackaging] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ slug:'', label:'', description:'' })
@@ -19,7 +20,22 @@ export default function CategoriesPage() {
     setCats(await res.json())
     setLoading(false)
   }
-  useEffect(() => { fetchCats() }, [])
+  async function fetchPackaging() {
+    const res = await fetch('/api/admin/packaging')
+    if (res.ok) setPackaging(await res.json())
+  }
+  useEffect(() => { fetchCats(); fetchPackaging() }, [])
+
+  // Set the default packaging material for a category (empty = none).
+  async function setCatPackaging(cat, value) {
+    setCats(prev => prev.map(c => c.id === cat.id ? { ...c, packaging_id: value === '' ? null : Number(value) } : c))
+    const res = await fetch(`/api/admin/categories/${cat.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packaging_id: value === '' ? null : Number(value) }),
+    })
+    if (!res.ok) { showToast('No se pudo asignar el empaque'); fetchCats() }
+    else showToast('Empaque asignado')
+  }
 
   async function handleAdd() {
     if (!form.slug || !form.label) return showToast('Nombre e identificador son requeridos')
@@ -101,6 +117,14 @@ export default function CategoriesPage() {
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontWeight:700, fontSize:15 }}>{cat.label}</div>
             <div style={{ fontSize:12, color:'#9ca3af', marginTop:2 }}>ID: {cat.slug}{cat.description ? ' - ' + cat.description.substring(0,40) : ''}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
+              <span style={{ fontSize:12, color:'#6b7280' }}>📦 Empaque:</span>
+              <select value={cat.packaging_id ?? ''} onChange={e => setCatPackaging(cat, e.target.value)}
+                style={{ border:'1.5px solid #fce7f3', borderRadius:8, padding:'4px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none', background:'white', cursor:'pointer' }}>
+                <option value="">Sin empaque</option>
+                {packaging.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
           </div>
           <button onClick={() => handleDelete(cat)}
             style={{ background:'#fef2f2', border:'none', borderRadius:8, padding:'8px 14px', color:'#dc2626', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}>
