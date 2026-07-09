@@ -29,6 +29,7 @@ export default function ProductsPage() {
   const [toast, setToast] = useState({ msg:'', ok:true })
   const imgRef = useRef()
   const listScrollY = useRef(0) // remembers list scroll position while editing
+  const saveChain = useRef(Promise.resolve()) // serializes variant saves (avoids blur+click races)
 
   function showToast(msg, ok=true) {
     setToast({ msg, ok })
@@ -85,14 +86,27 @@ export default function ProductsPage() {
   }
 
   // Upsert the variant for a photo. Empty name removes it (plain gallery photo).
-  async function saveVariant(image_url, label, stock, on_demand, reference_only) {
-    const res = await fetch(`/api/admin/products/${form.id}/variants`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand, reference_only: !!reference_only }),
-    })
-    if (res.ok) { await fetchProductVariants(form.id); showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada') }
-    else showToast('Error al guardar la variante', false)
+  // Saves are serialized through saveChain so a blur-triggered commit and a
+  // mode-button click can't race (last one issued wins), and productVariants is
+  // updated from the POST response — no full re-fetch that could land out of order.
+  function saveVariant(image_url, label, stock, on_demand, reference_only) {
+    const pid = form.id
+    const run = async () => {
+      const res = await fetch(`/api/admin/products/${pid}/variants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand, reference_only: !!reference_only }),
+      })
+      if (!res.ok) { showToast('Error al guardar la variante', false); return }
+      const data = await res.json()
+      setProductVariants(prev => {
+        const rest = prev.filter(v => v.image_url !== image_url)
+        return data && data.deleted ? rest : [...rest, data]
+      })
+      showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada')
+    }
+    saveChain.current = saveChain.current.then(run, run)
+    return saveChain.current
   }
 
   function setEdit(url, field, val) {
@@ -340,15 +354,20 @@ export default function ProductsPage() {
                       placeholder="Nombre (ej: Rosa)"
                       style={vInput}
                     />
-                    <input
-                      type="number"
-                      value={edit.stock ?? ''}
-                      onChange={e => setEdit(img.url, 'stock', e.target.value)}
-                      onBlur={() => commitVariant(img.url)}
-                      placeholder="Stock"
-                      disabled={stockDisabled}
-                      style={{ ...vInput, marginTop:4, opacity: stockDisabled ? 0.45 : 1, background: stockDisabled ? '#f3f4f6' : 'white' }}
-                    />
+                    {stockDisabled ? (
+                      <div style={{ ...vInput, marginTop:4, background:'#f3f4f6', color:'#9ca3af', fontSize:11, textAlign:'center', cursor:'default' }}>
+                        {referenceOnly ? 'Sin stock · referencia' : 'Sin stock · bajo pedido'}
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        value={edit.stock ?? ''}
+                        onChange={e => setEdit(img.url, 'stock', e.target.value)}
+                        onBlur={() => commitVariant(img.url)}
+                        placeholder="Stock"
+                        style={{ ...vInput, marginTop:4 }}
+                      />
+                    )}
                     {isVariant && (
                       <button
                         type="button"
