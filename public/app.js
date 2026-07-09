@@ -495,23 +495,25 @@ function openDetailModal(id) {
         </div>
     ` : '';
 
-    // Photo gallery thumbnails: all product images + "Solo referencia" photos
-    // (labeled, not purchasable). Clicking a thumbnail swaps the main image.
+    // Photo gallery thumbnails: one per product photo. A photo that is a "Solo
+    // referencia" image gets its label caption (purple); it's the SAME photo as
+    // in p.images, so we label it in place instead of listing it twice. Clicking
+    // any thumbnail swaps the main image (reference photos are display-only).
     const galleryImgs = (p.images && p.images.length ? p.images : [getProductImage(p)]);
-    const refs = p.references || [];
-    const galleryHtml = (galleryImgs.length > 1 || refs.length) ? `
+    const refLabelByUrl = {};
+    (p.references || []).forEach(r => { refLabelByUrl[r.image] = r.label; });
+    const galleryHtml = (galleryImgs.length > 1) ? `
         <div class="flex gap-2 mt-2 flex-wrap">
-            ${galleryImgs.map(url => `
-                <button type="button" onclick="setDetailMainImage(this, '${url}')" class="w-14 h-14 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-brand-pink flex-shrink-0">
-                    <img src="${url}" alt="${p.name}" class="w-full h-full object-cover">
-                </button>`).join('')}
-            ${refs.map(r => `
+            ${galleryImgs.map(url => {
+                const refLabel = refLabelByUrl[url];
+                return `
                 <div class="flex flex-col items-center w-14 flex-shrink-0">
-                    <button type="button" onclick="setDetailMainImage(this, '${r.image}')" class="w-14 h-14 rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-400">
-                        <img src="${r.image}" alt="${r.label}" class="w-full h-full object-cover">
+                    <button type="button" onclick="setDetailMainImage(this, '${url}')" class="w-14 h-14 rounded-lg overflow-hidden border-2 ${refLabel ? 'border-purple-200 hover:border-purple-400' : 'border-gray-200 hover:border-brand-pink'}">
+                        <img src="${url}" alt="${refLabel || p.name}" class="w-full h-full object-cover">
                     </button>
-                    <span class="text-[9px] text-purple-600 text-center leading-tight mt-0.5 truncate w-full" title="${r.label}">${r.label}</span>
-                </div>`).join('')}
+                    ${refLabel ? `<span class="text-[9px] text-purple-600 text-center leading-tight mt-0.5 truncate w-full" title="${refLabel}">${refLabel}</span>` : ''}
+                </div>`;
+            }).join('')}
         </div>` : '';
 
     const description = p.description || categoryDescriptions[cat] || 'Producto de alta calidad, ideal para complementar tu estilo.';

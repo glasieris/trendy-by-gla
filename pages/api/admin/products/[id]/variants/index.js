@@ -24,16 +24,10 @@ export default withAdminAuth(async function handler(req, res) {
 
     const cleanLabel = String(label || '').trim()
 
-    const { data: existing } = await supabaseAdmin
-      .from('product_variants')
-      .select('id')
-      .eq('product_id', id)
-      .eq('image_url', image_url)
-      .maybeSingle()
-
-    // Empty label => this photo is no longer a variant: remove it if it existed.
+    // Empty label => this photo is no longer a variant: remove any row for it
+    // (matched by product_id+image_url, so it also cleans up stray duplicates).
     if (!cleanLabel) {
-      if (existing) await supabaseAdmin.from('product_variants').delete().eq('id', existing.id)
+      await supabaseAdmin.from('product_variants').delete().eq('product_id', id).eq('image_url', image_url)
       return res.status(200).json({ deleted: true })
     }
 
@@ -47,12 +41,38 @@ export default withAdminAuth(async function handler(req, res) {
       stock: isReference ? 0 : Number(stock || 0),
       on_demand: isReference ? false : !!on_demand,
       reference_only: isReference,
-      sort_order: Number(sort_order || 0),
     }
+    // Only touch sort_order when the client sends it, so mode changes don't reset
+    // ordering (on insert the column default applies; on conflict it's preserved).
+    if (sort_order !== undefined) payload.sort_order = Number(sort_order || 0)
 
-    const result = existing
-      ? await supabaseAdmin.from('product_variants').update(payload).eq('id', existing.id).select().single()
-      : await supabaseAdmin.from('product_variants').insert(payload).select().single()
+    // Atomic upsert keyed by (product_id, image_url): the DB unique index from
+    // db/variant_unique_constraint.sql guarantees no duplicate variant rows can
+    // ever be created for the same photo (fixes the buyable/reference duplication).
+    let result = await supabaseAdmin
+      .from('product_variants')
+      .upsert(payload, { onConflict: 'product_id,image_url' })
+      .select()
+      .single()
+
+    // Fallback if the unique index isn't in place yet (upsert has no conflict
+    // target to match): self-healing manual upsert — update the first matching
+    // row, delete any stray duplicates, or insert when none exists.
+    if (result.error) {
+      const { data: rows } = await supabaseAdmin
+        .from('product_variants')
+        .select('id')
+        .eq('product_id', id)
+        .eq('image_url', image_url)
+        .order('id', { ascending: true })
+      if (rows && rows.length) {
+        const extra = rows.slice(1).map(r => r.id)
+        if (extra.length) await supabaseAdmin.from('product_variants').delete().in('id', extra)
+        result = await supabaseAdmin.from('product_variants').update(payload).eq('id', rows[0].id).select().single()
+      } else {
+        result = await supabaseAdmin.from('product_variants').insert(payload).select().single()
+      }
+    }
 
     if (result.error) return res.status(500).json({ error: result.error.message })
     return res.status(200).json(result.data)
