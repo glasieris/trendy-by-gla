@@ -11,7 +11,7 @@ export default withAdminAuth(async function handler(req, res) {
   const [catsRes, prodsRes, varsRes] = await Promise.all([
     supabaseAdmin.from('categories').select('slug, label').order('sort_order'),
     supabaseAdmin.from('products').select('id, category_slug, price_detal, cost, active').eq('active', true).eq('archived', false),
-    supabaseAdmin.from('product_variants').select('product_id, stock, on_demand').eq('active', true),
+    supabaseAdmin.from('product_variants').select('product_id, stock, on_demand, reference_only').eq('active', true),
   ])
   if (prodsRes.error) return res.status(500).json({ error: prodsRes.error.message })
   if (varsRes.error) return res.status(500).json({ error: varsRes.error.message })
@@ -24,6 +24,7 @@ export default withAdminAuth(async function handler(req, res) {
   // product has any physical-stock variant at all.
   const byProduct = {}
   for (const v of variants) {
+    if (v.reference_only) continue // "Solo referencia": display-only photo, never counts as a variant
     const g = (byProduct[v.product_id] ||= { hasAnyVariant: false, hasPhysical: false, physicalStock: 0 })
     g.hasAnyVariant = true
     if (!v.on_demand) { g.hasPhysical = true; g.physicalStock += Number(v.stock) || 0 }
