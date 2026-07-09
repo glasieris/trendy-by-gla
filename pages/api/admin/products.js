@@ -3,7 +3,10 @@ import supabaseAdmin from '../../../lib/supabaseAdmin'
 
 export default withAdminAuth(async function handler(req, res) {
   if (req.method === 'GET') {
-    const { data, error } = await supabaseAdmin.from('products').select('*').order('category_slug').order('sort_order')
+    // Default: only non-archived products. ?archived=true returns archived ones
+    // (used by the low-visibility "Productos archivados" restore section).
+    const wantArchived = req.query.archived === 'true'
+    const { data, error } = await supabaseAdmin.from('products').select('*').eq('archived', wantArchived).order('category_slug').order('sort_order')
     if (error) return res.status(500).json({ error: error.message })
 
     // Resolve each product's thumbnail from product_images (the source of truth),

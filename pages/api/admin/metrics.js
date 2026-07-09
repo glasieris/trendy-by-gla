@@ -10,7 +10,7 @@ export default withAdminAuth(async function handler(req, res) {
 
   const [catsRes, prodsRes, varsRes] = await Promise.all([
     supabaseAdmin.from('categories').select('slug, label').order('sort_order'),
-    supabaseAdmin.from('products').select('id, category_slug, price_detal, cost, active').eq('active', true),
+    supabaseAdmin.from('products').select('id, category_slug, price_detal, cost, active').eq('active', true).eq('archived', false),
     supabaseAdmin.from('product_variants').select('product_id, stock, on_demand').eq('active', true),
   ])
   if (prodsRes.error) return res.status(500).json({ error: prodsRes.error.message })

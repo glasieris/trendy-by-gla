@@ -14,6 +14,8 @@ function Toast({ msg, ok }) {
 export default function ProductsPage() {
   const router = useRouter()
   const [products, setProducts] = useState([])
+  const [archivedProducts, setArchivedProducts] = useState([])
+  const [showArchived, setShowArchived] = useState(false)
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('') // real-time filter by product name
@@ -250,11 +252,30 @@ export default function ProductsPage() {
     }
   }
 
+  // Soft-delete: archive the product (and its variants) instead of removing it,
+  // so historical orders keep working. Recoverable from "Productos archivados".
   async function handleDelete(p) {
-    if (!confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`)) return
-    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
-    if (res.ok) { showToast('Producto eliminado'); fetchData() }
+    if (!confirm(`¿Eliminar "${p.name}"? Dejará de aparecer en la tienda y en el admin. (Recuperable desde "Productos archivados".)`)) return
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) })
+    if (res.ok) { showToast('Producto eliminado'); fetchData(); if (showArchived) fetchArchived() }
     else showToast('Error al eliminar', false)
+  }
+
+  async function handleRestore(p) {
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false }) })
+    if (res.ok) { showToast('Producto restaurado'); fetchArchived(); fetchData() }
+    else showToast('Error al restaurar', false)
+  }
+
+  async function fetchArchived() {
+    const res = await fetch('/api/admin/products?archived=true')
+    if (res.ok) setArchivedProducts(await res.json())
+  }
+
+  function toggleArchivedView() {
+    const next = !showArchived
+    setShowArchived(next)
+    if (next) fetchArchived()
   }
 
   async function toggleActive(p) {
@@ -471,12 +492,42 @@ export default function ProductsPage() {
                 <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
                   <button onClick={() => openEdit(p)} style={{ background:'#fce7f3', border:'none', borderRadius:8, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', color:'#E91E8C' }}>Editar</button>
                   <button onClick={() => toggleActive(p)} style={{ background: p.active ? '#f3f4f6' : '#dcfce7', border:'none', borderRadius:8, padding:'5px 10px', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>{p.active ? 'Ocultar' : 'Activar'}</button>
+                  <button onClick={() => handleDelete(p)} style={{ background:'white', border:'1px solid #fecaca', borderRadius:8, padding:'5px 10px', fontSize:11, cursor:'pointer', fontFamily:'inherit', color:'#dc2626' }}>Eliminar</button>
                 </div>
               </div>
             ))}
           </div>
           )
         })
+      )}
+
+      {/* Low-visibility archived section — recovery only, not for daily use */}
+      <div style={{ marginTop:28, paddingTop:14, borderTop:'1px solid #f3f4f6', textAlign:'center' }}>
+        <button onClick={toggleArchivedView}
+          style={{ background:'none', border:'none', color:'#9ca3af', fontSize:12, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline' }}>
+          {showArchived ? 'Ocultar productos archivados' : 'Ver productos archivados'}
+        </button>
+      </div>
+
+      {showArchived && (
+        <div style={{ marginTop:12 }}>
+          {archivedProducts.length === 0 ? (
+            <div style={{ textAlign:'center', color:'#9ca3af', fontSize:13, padding:16 }}>No hay productos archivados.</div>
+          ) : archivedProducts.map(p => (
+            <div key={p.id} style={{ background:'#fafafa', borderRadius:14, marginBottom:8, padding:'12px 14px', display:'flex', alignItems:'center', gap:12, border:'1px solid #f3f4f6' }}>
+              <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', background:'#f3f4f6', flexShrink:0 }}>
+                {p.thumb ?
+                  <img src={p.thumb} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover', filter:'grayscale(1)' }} onError={e => { e.target.style.display='none' }} /> :
+                  <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🗃️</div>}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:600, fontSize:14, color:'#6b7280', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                <div style={{ fontSize:11, color:'#9ca3af' }}>{categories.find(c => c.slug === p.category_slug)?.label || p.category_slug} · archivado</div>
+              </div>
+              <button onClick={() => handleRestore(p)} style={{ background:'#dcfce7', border:'none', borderRadius:8, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', color:'#166534', flexShrink:0 }}>Restaurar</button>
+            </div>
+          ))}
+        </div>
       )}
     </AdminLayout>
   )
