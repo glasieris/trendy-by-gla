@@ -49,16 +49,19 @@ export default withAdminAuth(async function handler(req, res) {
     // Atomic upsert keyed by (product_id, image_url): the DB unique index from
     // db/variant_unique_constraint.sql guarantees no duplicate variant rows can
     // ever be created for the same photo (fixes the buyable/reference duplication).
-    let result = await supabaseAdmin
+    // NOTE: never use .single() here. It throws PGRST116 ("Cannot coerce the
+    // result to a single JSON object") whenever the returned set isn't exactly
+    // one row (0 or >1), which can happen transiently. We upsert, then read the
+    // canonical row back explicitly, so the response is always well-formed.
+    let up = await supabaseAdmin
       .from('product_variants')
       .upsert(payload, { onConflict: 'product_id,image_url' })
       .select()
-      .single()
 
     // Fallback if the unique index isn't in place yet (upsert has no conflict
     // target to match): self-healing manual upsert — update the first matching
     // row, delete any stray duplicates, or insert when none exists.
-    if (result.error) {
+    if (up.error) {
       const { data: rows } = await supabaseAdmin
         .from('product_variants')
         .select('id')
@@ -68,14 +71,24 @@ export default withAdminAuth(async function handler(req, res) {
       if (rows && rows.length) {
         const extra = rows.slice(1).map(r => r.id)
         if (extra.length) await supabaseAdmin.from('product_variants').delete().in('id', extra)
-        result = await supabaseAdmin.from('product_variants').update(payload).eq('id', rows[0].id).select().single()
+        up = await supabaseAdmin.from('product_variants').update(payload).eq('id', rows[0].id).select()
       } else {
-        result = await supabaseAdmin.from('product_variants').insert(payload).select().single()
+        up = await supabaseAdmin.from('product_variants').insert(payload).select()
       }
     }
 
-    if (result.error) return res.status(500).json({ error: result.error.message })
-    return res.status(200).json(result.data)
+    if (up.error) return res.status(500).json({ error: up.error.message })
+
+    // Return the stored row (re-read to be safe, independent of upsert RETURNING).
+    const { data: saved } = await supabaseAdmin
+      .from('product_variants')
+      .select('*')
+      .eq('product_id', id)
+      .eq('image_url', image_url)
+      .order('id', { ascending: false })
+      .limit(1)
+    const row = (saved && saved[0]) || (Array.isArray(up.data) ? up.data[0] : up.data) || null
+    return res.status(200).json(row)
   }
 
   return res.status(405).end()
