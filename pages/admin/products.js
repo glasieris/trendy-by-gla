@@ -92,18 +92,31 @@ export default function ProductsPage() {
   function saveVariant(image_url, label, stock, on_demand, reference_only) {
     const pid = form.id
     const run = async () => {
-      const res = await fetch(`/api/admin/products/${pid}/variants`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand, reference_only: !!reference_only }),
-      })
-      if (!res.ok) { showToast('Error al guardar la variante', false); return }
-      const data = await res.json()
-      setProductVariants(prev => {
-        const rest = prev.filter(v => v.image_url !== image_url)
-        return data && data.deleted ? rest : [...rest, data]
-      })
-      showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada')
+      try {
+        const res = await fetch(`/api/admin/products/${pid}/variants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand, reference_only: !!reference_only }),
+        })
+        if (!res.ok) {
+          // Surface the real cause (HTTP status + server message) so save
+          // failures are diagnosable instead of a generic toast.
+          let detail = ''
+          try { detail = (await res.json())?.error || '' } catch {}
+          console.error('saveVariant failed', res.status, detail)
+          showToast(`Error ${res.status}${detail ? ': ' + detail : ' al guardar la variante'}`, false)
+          return
+        }
+        const data = await res.json()
+        setProductVariants(prev => {
+          const rest = prev.filter(v => v.image_url !== image_url)
+          return data && data.deleted ? rest : [...rest, data]
+        })
+        showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada')
+      } catch (e) {
+        console.error('saveVariant network error', e)
+        showToast('Error de red: ' + (e?.message || e), false)
+      }
     }
     saveChain.current = saveChain.current.then(run, run)
     return saveChain.current
