@@ -5,11 +5,13 @@ export default withAdminAuth(async function handler(req, res) {
   const { id } = req.query
 
   if (req.method === 'PATCH') {
-    const allowed = ['slug', 'label', 'description', 'sort_order']
+    const allowed = ['slug', 'label', 'description', 'sort_order', 'packaging_id']
     const updates = {}
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key]
     }
+    // Empty selection ("Sin empaque") comes through as '' — store NULL.
+    if (updates.packaging_id === '' || updates.packaging_id === 0) updates.packaging_id = null
     if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Nada que actualizar' })
     const { data, error } = await supabaseAdmin.from('categories').update(updates).eq('id', id).select().single()
     if (error) return res.status(500).json({ error: error.message })

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/admin/AdminLayout'
 
-const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'' }
+const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_detal:'', price_mayor:'', min_mayor:'6', description:'', image_url:'', cost:'', provider:'' }
 
 // Lowercase + strip accents so search matches "corazon" against "Corazón".
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
@@ -14,6 +14,8 @@ function Toast({ msg, ok }) {
 export default function ProductsPage() {
   const router = useRouter()
   const [products, setProducts] = useState([])
+  const [archivedProducts, setArchivedProducts] = useState([])
+  const [showArchived, setShowArchived] = useState(false)
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('') // real-time filter by product name
@@ -54,7 +56,7 @@ export default function ProductsPage() {
   useEffect(() => {
     setVariantEdits(prev => {
       const seed = { ...prev }
-      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? '') } })
+      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? ''), on_demand: !!v.on_demand } })
       return seed
     })
   }, [productVariants])
@@ -83,11 +85,11 @@ export default function ProductsPage() {
   }
 
   // Upsert the variant for a photo. Empty name removes it (plain gallery photo).
-  async function saveVariant(image_url, label, stock) {
+  async function saveVariant(image_url, label, stock, on_demand) {
     const res = await fetch(`/api/admin/products/${form.id}/variants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url, label, stock: Number(stock || 0) }),
+      body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand }),
     })
     if (res.ok) { await fetchProductVariants(form.id); showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada') }
     else showToast('Error al guardar la variante', false)
@@ -97,17 +99,32 @@ export default function ProductsPage() {
     setVariantEdits(prev => ({ ...prev, [url]: { ...prev[url], [field]: val } }))
   }
 
-  // Save on blur, but only if the name/stock actually changed.
+  // Save on blur, but only if the name/stock/mode actually changed.
   function commitVariant(url) {
     const e = variantEdits[url] || {}
     const label = String(e.label || '').trim()
     const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
+    const onDemand = !!e.on_demand
     const existing = productVariants.find(v => v.image_url === url)
     const prevLabel = String(existing?.label || '').trim()
     const prevStock = existing?.stock ?? 0
-    if (label === prevLabel && stock === prevStock) return
+    const prevOnDemand = !!existing?.on_demand
+    if (label === prevLabel && stock === prevStock && onDemand === prevOnDemand) return
     if (!label && !existing) return
-    saveVariant(url, label, stock)
+    saveVariant(url, label, stock, onDemand)
+  }
+
+  // Flip a variant between "Tengo stock" (on_demand=false) and "Bajo pedido"
+  // (on_demand=true), saving immediately for photos that are already variants.
+  function toggleOnDemand(url) {
+    const e = variantEdits[url] || {}
+    const next = !e.on_demand
+    setEdit(url, 'on_demand', next)
+    const label = String(e.label || '').trim()
+    const existing = productVariants.find(v => v.image_url === url)
+    if (!label && !existing) return // not a variant yet; remember the choice for when it's named
+    const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
+    saveVariant(url, label || existing.label, stock, next)
   }
 
   function openNew() {
@@ -120,7 +137,7 @@ export default function ProductsPage() {
 
   function openEdit(p) {
     listScrollY.current = window.scrollY
-    setForm({ ...p, price_detal: String(p.price_detal), price_mayor: String(p.price_mayor), min_mayor: String(p.min_mayor) })
+    setForm({ ...p, price_detal: String(p.price_detal), price_mayor: String(p.price_mayor), min_mayor: String(p.min_mayor), cost: p.cost != null ? String(p.cost) : '', provider: p.provider || '' })
     setProductImages([])
     setProductVariants([])
     setVariantEdits({})
@@ -205,6 +222,8 @@ export default function ProductsPage() {
       price_detal: parseFloat(form.price_detal),
       price_mayor: parseFloat(form.price_mayor),
       min_mayor: parseInt(form.min_mayor) || 999,
+      cost: form.cost === '' || form.cost == null ? null : parseFloat(form.cost),
+      provider: (form.provider || '').trim() || null,
     }
 
     let res
@@ -233,11 +252,30 @@ export default function ProductsPage() {
     }
   }
 
+  // Soft-delete: archive the product (and its variants) instead of removing it,
+  // so historical orders keep working. Recoverable from "Productos archivados".
   async function handleDelete(p) {
-    if (!confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`)) return
-    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
-    if (res.ok) { showToast('Producto eliminado'); fetchData() }
+    if (!confirm(`¿Eliminar "${p.name}"? Dejará de aparecer en la tienda y en el admin. (Recuperable desde "Productos archivados".)`)) return
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) })
+    if (res.ok) { showToast('Producto eliminado'); fetchData(); if (showArchived) fetchArchived() }
     else showToast('Error al eliminar', false)
+  }
+
+  async function handleRestore(p) {
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false }) })
+    if (res.ok) { showToast('Producto restaurado'); fetchArchived(); fetchData() }
+    else showToast('Error al restaurar', false)
+  }
+
+  async function fetchArchived() {
+    const res = await fetch('/api/admin/products?archived=true')
+    if (res.ok) setArchivedProducts(await res.json())
+  }
+
+  function toggleArchivedView() {
+    const next = !showArchived
+    setShowArchived(next)
+    if (next) fetchArchived()
   }
 
   async function toggleActive(p) {
@@ -270,7 +308,8 @@ export default function ProductsPage() {
               {productImages.map((img, idx) => {
                 const edit = variantEdits[img.url] || {}
                 const isVariant = String(edit.label || '').trim().length > 0
-                const isAgotado = isVariant && Number(edit.stock || 0) <= 0
+                const onDemand = !!edit.on_demand
+                const isAgotado = isVariant && !onDemand && Number(edit.stock || 0) <= 0
                 const vInput = { width:120, marginTop:5, border:'1.5px solid #fce7f3', borderRadius:8, padding:'6px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none' }
                 return (
                   <div key={img.id} style={{ width:120 }}>
@@ -297,8 +336,19 @@ export default function ProductsPage() {
                       onChange={e => setEdit(img.url, 'stock', e.target.value)}
                       onBlur={() => commitVariant(img.url)}
                       placeholder="Stock"
-                      style={{ ...vInput, marginTop:4 }}
+                      disabled={onDemand}
+                      style={{ ...vInput, marginTop:4, opacity: onDemand ? 0.45 : 1, background: onDemand ? '#f3f4f6' : 'white' }}
                     />
+                    {isVariant && (
+                      <button
+                        type="button"
+                        onClick={() => toggleOnDemand(img.url)}
+                        title="Cambiar entre stock físico y bajo pedido"
+                        style={{ width:120, marginTop:5, border:'1.5px solid', borderColor: onDemand ? '#E91E8C' : '#fce7f3', borderRadius:8, padding:'5px 6px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit', background: onDemand ? '#fce7f3' : 'white', color: onDemand ? '#E91E8C' : '#6b7280' }}
+                      >
+                        {onDemand ? '🕒 Bajo pedido' : '📦 Tengo stock'}
+                      </button>
+                    )}
                     {isAgotado && <div style={{ fontSize:10, color:'#dc2626', fontWeight:700, marginTop:3 }}>● Agotado</div>}
                   </div>
                 )
@@ -357,6 +407,22 @@ export default function ProductsPage() {
           <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, cursor:'pointer' }}>
             <input type="checkbox" checked={form.is_hair} onChange={e => setForm(f => ({...f, is_hair: e.target.checked}))} /> Es accesorio de cabello
           </label>
+        </div>
+
+        {/* Internal-only fields — never exposed to the storefront/public API */}
+        <div style={{ marginTop:20, border:'1.5px dashed #d1d5db', borderRadius:12, padding:'14px', background:'#f9fafb' }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#6b7280', marginBottom:2 }}>🔒 Información interna</div>
+          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:12 }}>No visible para clientes. Solo para el panel de administración.</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div>
+              <label style={label}>Costo ($)</label>
+              <input style={inp} type="number" step="0.01" value={form.cost} onChange={e => setForm(f => ({...f, cost: e.target.value}))} placeholder="0.00" />
+            </div>
+            <div>
+              <label style={label}>Proveedor</label>
+              <input style={inp} value={form.provider} onChange={e => setForm(f => ({...f, provider: e.target.value}))} placeholder="Ej: Proveedor X" />
+            </div>
+          </div>
         </div>
 
         <button onClick={handleSave} disabled={saving}
@@ -426,12 +492,42 @@ export default function ProductsPage() {
                 <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
                   <button onClick={() => openEdit(p)} style={{ background:'#fce7f3', border:'none', borderRadius:8, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', color:'#E91E8C' }}>Editar</button>
                   <button onClick={() => toggleActive(p)} style={{ background: p.active ? '#f3f4f6' : '#dcfce7', border:'none', borderRadius:8, padding:'5px 10px', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>{p.active ? 'Ocultar' : 'Activar'}</button>
+                  <button onClick={() => handleDelete(p)} style={{ background:'white', border:'1px solid #fecaca', borderRadius:8, padding:'5px 10px', fontSize:11, cursor:'pointer', fontFamily:'inherit', color:'#dc2626' }}>Eliminar</button>
                 </div>
               </div>
             ))}
           </div>
           )
         })
+      )}
+
+      {/* Low-visibility archived section — recovery only, not for daily use */}
+      <div style={{ marginTop:28, paddingTop:14, borderTop:'1px solid #f3f4f6', textAlign:'center' }}>
+        <button onClick={toggleArchivedView}
+          style={{ background:'none', border:'none', color:'#9ca3af', fontSize:12, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline' }}>
+          {showArchived ? 'Ocultar productos archivados' : 'Ver productos archivados'}
+        </button>
+      </div>
+
+      {showArchived && (
+        <div style={{ marginTop:12 }}>
+          {archivedProducts.length === 0 ? (
+            <div style={{ textAlign:'center', color:'#9ca3af', fontSize:13, padding:16 }}>No hay productos archivados.</div>
+          ) : archivedProducts.map(p => (
+            <div key={p.id} style={{ background:'#fafafa', borderRadius:14, marginBottom:8, padding:'12px 14px', display:'flex', alignItems:'center', gap:12, border:'1px solid #f3f4f6' }}>
+              <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', background:'#f3f4f6', flexShrink:0 }}>
+                {p.thumb ?
+                  <img src={p.thumb} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover', filter:'grayscale(1)' }} onError={e => { e.target.style.display='none' }} /> :
+                  <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🗃️</div>}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:600, fontSize:14, color:'#6b7280', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                <div style={{ fontSize:11, color:'#9ca3af' }}>{categories.find(c => c.slug === p.category_slug)?.label || p.category_slug} · archivado</div>
+              </div>
+              <button onClick={() => handleRestore(p)} style={{ background:'#dcfce7', border:'none', borderRadius:8, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', color:'#166534', flexShrink:0 }}>Restaurar</button>
+            </div>
+          ))}
+        </div>
       )}
     </AdminLayout>
   )
