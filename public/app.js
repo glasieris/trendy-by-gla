@@ -495,6 +495,25 @@ function openDetailModal(id) {
         </div>
     ` : '';
 
+    // Photo gallery thumbnails: all product images + "Solo referencia" photos
+    // (labeled, not purchasable). Clicking a thumbnail swaps the main image.
+    const galleryImgs = (p.images && p.images.length ? p.images : [getProductImage(p)]);
+    const refs = p.references || [];
+    const galleryHtml = (galleryImgs.length > 1 || refs.length) ? `
+        <div class="flex gap-2 mt-2 flex-wrap">
+            ${galleryImgs.map(url => `
+                <button type="button" onclick="setDetailMainImage(this, '${url}')" class="w-14 h-14 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-brand-pink flex-shrink-0">
+                    <img src="${url}" alt="${p.name}" class="w-full h-full object-cover">
+                </button>`).join('')}
+            ${refs.map(r => `
+                <div class="flex flex-col items-center w-14 flex-shrink-0">
+                    <button type="button" onclick="setDetailMainImage(this, '${r.image}')" class="w-14 h-14 rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-400">
+                        <img src="${r.image}" alt="${r.label}" class="w-full h-full object-cover">
+                    </button>
+                    <span class="text-[9px] text-purple-600 text-center leading-tight mt-0.5 truncate w-full" title="${r.label}">${r.label}</span>
+                </div>`).join('')}
+        </div>` : '';
+
     const description = p.description || categoryDescriptions[cat] || 'Producto de alta calidad, ideal para complementar tu estilo.';
 
     document.getElementById('detail-content').innerHTML = `
@@ -507,8 +526,7 @@ function openDetailModal(id) {
                         ${getCategoryEmoji(cat)}
                     </div>
                 </div>
-                <div class="flex gap-2 mt-2">
-                    </div>
+                ${galleryHtml}
             </div>
             <div class="flex-1">
                 <span class="text-xs bg-brand-light text-brand-pink px-2.5 py-1 rounded-full font-medium">${categoryLabels[cat] || cat}</span>
@@ -545,6 +563,13 @@ function openDetailModal(id) {
     document.getElementById('detail-backdrop').classList.remove('hidden');
     document.getElementById('detail-modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+}
+
+// Swap the main detail image from a gallery thumbnail (does not select a
+// buyable variant — reference photos are display-only).
+function setDetailMainImage(btn, src) {
+    const mainImg = document.getElementById('detail-main-img');
+    if (mainImg && src) { mainImg.src = src; mainImg.style.display = ''; }
 }
 
 function selectDetailVariant(i, btn) {

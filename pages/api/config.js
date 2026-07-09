@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       // Explicit column list (never select internal fields like cost/provider).
       supabase.from('products').select('id, name, category_slug, is_hair, price_detal, price_mayor, min_mayor, description, image_url').eq('active', true).eq('archived', false).order('sort_order'),
       supabase.from('product_images').select('product_id, url, sort_order').order('sort_order'),
-      supabase.from('product_variants').select('product_id, id, label, image_url, stock, on_demand').eq('active', true).order('sort_order'),
+      supabase.from('product_variants').select('product_id, id, label, image_url, stock, on_demand, reference_only').eq('active', true).order('sort_order'),
     ])
 
     const bcv_rate = settingsRes.data?.value ? parseFloat(settingsRes.data.value) : 443.26
@@ -23,11 +23,19 @@ export default async function handler(req, res) {
       imagesByProduct[img.product_id].push(img.url)
     })
 
-    // Build variants map: product_id → [{ id, label, image, stock }, ...]
+    // Split variants into buyable options vs "Solo referencia" photos.
+    // Buyable ones stay in `variants` (the "Elige una opción" picker); reference
+    // photos go to `references` (labeled thumbnails, not purchasable).
     const variantsByProduct = {}
+    const referencesByProduct = {}
     ;(variantsRes.data ?? []).forEach(v => {
-      if (!variantsByProduct[v.product_id]) variantsByProduct[v.product_id] = []
-      variantsByProduct[v.product_id].push({ id: v.id, label: v.label, image: v.image_url, stock: v.stock, on_demand: !!v.on_demand })
+      if (v.reference_only) {
+        if (!referencesByProduct[v.product_id]) referencesByProduct[v.product_id] = []
+        referencesByProduct[v.product_id].push({ label: v.label, image: v.image_url })
+      } else {
+        if (!variantsByProduct[v.product_id]) variantsByProduct[v.product_id] = []
+        variantsByProduct[v.product_id].push({ id: v.id, label: v.label, image: v.image_url, stock: v.stock, on_demand: !!v.on_demand })
+      }
     })
 
     const products = (productsRes.data ?? []).map(p => {
@@ -44,6 +52,7 @@ export default async function handler(req, res) {
         image_url: imgs[0] || null,
         images: imgs,
         variants: variantsByProduct[p.id] ?? [],
+        references: referencesByProduct[p.id] ?? [],
       }
     })
 

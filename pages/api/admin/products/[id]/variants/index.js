@@ -19,7 +19,7 @@ export default withAdminAuth(async function handler(req, res) {
 
   if (req.method === 'POST') {
     // Upsert a variant for a given photo (image_url).
-    const { image_url, label, stock, sort_order, on_demand } = req.body
+    const { image_url, label, stock, sort_order, on_demand, reference_only } = req.body
     if (!image_url) return res.status(400).json({ error: 'image_url requerido' })
 
     const cleanLabel = String(label || '').trim()
@@ -37,12 +37,16 @@ export default withAdminAuth(async function handler(req, res) {
       return res.status(200).json({ deleted: true })
     }
 
+    // "Solo referencia" is mutually exclusive with the buyable modes: force
+    // on_demand=false and stock=0 so a reference photo never carries stock/cost.
+    const isReference = !!reference_only
     const payload = {
       product_id: id,
       image_url,
       label: cleanLabel,
-      stock: Number(stock || 0),
-      on_demand: !!on_demand,
+      stock: isReference ? 0 : Number(stock || 0),
+      on_demand: isReference ? false : !!on_demand,
+      reference_only: isReference,
       sort_order: Number(sort_order || 0),
     }
 

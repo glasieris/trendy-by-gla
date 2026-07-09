@@ -56,7 +56,7 @@ export default function ProductsPage() {
   useEffect(() => {
     setVariantEdits(prev => {
       const seed = { ...prev }
-      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? ''), on_demand: !!v.on_demand } })
+      productVariants.forEach(v => { seed[v.image_url] = { label: v.label || '', stock: String(v.stock ?? ''), on_demand: !!v.on_demand, reference_only: !!v.reference_only } })
       return seed
     })
   }, [productVariants])
@@ -85,11 +85,11 @@ export default function ProductsPage() {
   }
 
   // Upsert the variant for a photo. Empty name removes it (plain gallery photo).
-  async function saveVariant(image_url, label, stock, on_demand) {
+  async function saveVariant(image_url, label, stock, on_demand, reference_only) {
     const res = await fetch(`/api/admin/products/${form.id}/variants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand }),
+      body: JSON.stringify({ image_url, label, stock: Number(stock || 0), on_demand: !!on_demand, reference_only: !!reference_only }),
     })
     if (res.ok) { await fetchProductVariants(form.id); showToast(String(label).trim() ? '✅ Variante guardada' : 'Variante quitada') }
     else showToast('Error al guardar la variante', false)
@@ -103,28 +103,36 @@ export default function ProductsPage() {
   function commitVariant(url) {
     const e = variantEdits[url] || {}
     const label = String(e.label || '').trim()
-    const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
-    const onDemand = !!e.on_demand
+    const referenceOnly = !!e.reference_only
+    const onDemand = !referenceOnly && !!e.on_demand
+    const stock = referenceOnly ? 0 : (e.stock === '' || e.stock == null ? 0 : Number(e.stock))
     const existing = productVariants.find(v => v.image_url === url)
     const prevLabel = String(existing?.label || '').trim()
     const prevStock = existing?.stock ?? 0
     const prevOnDemand = !!existing?.on_demand
-    if (label === prevLabel && stock === prevStock && onDemand === prevOnDemand) return
+    const prevReference = !!existing?.reference_only
+    if (label === prevLabel && stock === prevStock && onDemand === prevOnDemand && referenceOnly === prevReference) return
     if (!label && !existing) return
-    saveVariant(url, label, stock, onDemand)
+    saveVariant(url, label, stock, onDemand, referenceOnly)
   }
 
-  // Flip a variant between "Tengo stock" (on_demand=false) and "Bajo pedido"
-  // (on_demand=true), saving immediately for photos that are already variants.
-  function toggleOnDemand(url) {
+  // Cycle a variant through the three photo modes:
+  // Tengo stock → Bajo pedido → Solo referencia → (back to Tengo stock).
+  // Reference mode is mutually exclusive with on_demand. Saves immediately for
+  // photos that are already variants.
+  function cycleMode(url) {
     const e = variantEdits[url] || {}
-    const next = !e.on_demand
-    setEdit(url, 'on_demand', next)
+    // Current mode index: 0=stock, 1=on_demand, 2=reference.
+    const current = e.reference_only ? 2 : e.on_demand ? 1 : 0
+    const nextMode = (current + 1) % 3
+    const nextOnDemand = nextMode === 1
+    const nextReference = nextMode === 2
+    setVariantEdits(prev => ({ ...prev, [url]: { ...prev[url], on_demand: nextOnDemand, reference_only: nextReference } }))
     const label = String(e.label || '').trim()
     const existing = productVariants.find(v => v.image_url === url)
     if (!label && !existing) return // not a variant yet; remember the choice for when it's named
-    const stock = e.stock === '' || e.stock == null ? 0 : Number(e.stock)
-    saveVariant(url, label || existing.label, stock, next)
+    const stock = nextReference ? 0 : (e.stock === '' || e.stock == null ? 0 : Number(e.stock))
+    saveVariant(url, label || existing.label, stock, nextOnDemand, nextReference)
   }
 
   function openNew() {
@@ -308,8 +316,10 @@ export default function ProductsPage() {
               {productImages.map((img, idx) => {
                 const edit = variantEdits[img.url] || {}
                 const isVariant = String(edit.label || '').trim().length > 0
-                const onDemand = !!edit.on_demand
-                const isAgotado = isVariant && !onDemand && Number(edit.stock || 0) <= 0
+                const referenceOnly = !!edit.reference_only
+                const onDemand = !referenceOnly && !!edit.on_demand
+                const stockDisabled = onDemand || referenceOnly
+                const isAgotado = isVariant && !onDemand && !referenceOnly && Number(edit.stock || 0) <= 0
                 const vInput = { width:120, marginTop:5, border:'1.5px solid #fce7f3', borderRadius:8, padding:'6px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none' }
                 return (
                   <div key={img.id} style={{ width:120 }}>
@@ -336,19 +346,20 @@ export default function ProductsPage() {
                       onChange={e => setEdit(img.url, 'stock', e.target.value)}
                       onBlur={() => commitVariant(img.url)}
                       placeholder="Stock"
-                      disabled={onDemand}
-                      style={{ ...vInput, marginTop:4, opacity: onDemand ? 0.45 : 1, background: onDemand ? '#f3f4f6' : 'white' }}
+                      disabled={stockDisabled}
+                      style={{ ...vInput, marginTop:4, opacity: stockDisabled ? 0.45 : 1, background: stockDisabled ? '#f3f4f6' : 'white' }}
                     />
                     {isVariant && (
                       <button
                         type="button"
-                        onClick={() => toggleOnDemand(img.url)}
-                        title="Cambiar entre stock físico y bajo pedido"
-                        style={{ width:120, marginTop:5, border:'1.5px solid', borderColor: onDemand ? '#E91E8C' : '#fce7f3', borderRadius:8, padding:'5px 6px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit', background: onDemand ? '#fce7f3' : 'white', color: onDemand ? '#E91E8C' : '#6b7280' }}
+                        onClick={() => cycleMode(img.url)}
+                        title="Cambiar modo: Tengo stock → Bajo pedido → Solo referencia"
+                        style={{ width:120, marginTop:5, border:'1.5px solid', borderColor: referenceOnly ? '#7c3aed' : onDemand ? '#E91E8C' : '#fce7f3', borderRadius:8, padding:'5px 6px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit', background: referenceOnly ? '#ede9fe' : onDemand ? '#fce7f3' : 'white', color: referenceOnly ? '#7c3aed' : onDemand ? '#E91E8C' : '#6b7280' }}
                       >
-                        {onDemand ? '🕒 Bajo pedido' : '📦 Tengo stock'}
+                        {referenceOnly ? '🔖 Solo referencia' : onDemand ? '🕒 Bajo pedido' : '📦 Tengo stock'}
                       </button>
                     )}
+                    {referenceOnly && isVariant && <div style={{ fontSize:9, color:'#7c3aed', fontWeight:600, marginTop:3, lineHeight:1.3 }}>Solo imagen · no comprable</div>}
                     {isAgotado && <div style={{ fontSize:10, color:'#dc2626', fontWeight:700, marginTop:3 }}>● Agotado</div>}
                   </div>
                 )
@@ -366,7 +377,8 @@ export default function ProductsPage() {
           {productImages.length > 0 && (
             <div style={{ fontSize:11, color:'#9ca3af', marginTop:8, lineHeight:1.5 }}>
               La primera foto es la imagen principal del catálogo.<br />
-              Ponle un <strong>Nombre</strong> a una foto para convertirla en una <strong>variante comprable</strong> (color/modelo). El <strong>Stock</strong> en 0 la marca como <strong>Agotado</strong>.
+              Ponle un <strong>Nombre</strong> a una foto para convertirla en una <strong>variante comprable</strong> (color/modelo). El <strong>Stock</strong> en 0 la marca como <strong>Agotado</strong>.<br />
+              El botón de modo cicla entre <strong>📦 Tengo stock</strong>, <strong>🕒 Bajo pedido</strong> y <strong>🔖 Solo referencia</strong> (foto etiquetada que no se vende ni cuenta en inventario/costos).
             </div>
           )}
         </div>
