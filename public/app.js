@@ -360,21 +360,39 @@ function quickAdd(id) {
     }
 }
 
+// Max units that may be selected for a cart line / variant. Products without a
+// variant and "Bajo pedido" variants are unlimited (Infinity); real-stock
+// variants are capped at their available count. We never display this number as
+// fixed text — it only bounds the picker and drives the "Solo X disponibles" toast.
+function variantCap(entry) {
+    if (!entry || entry.variantId == null || entry.onDemand) return Infinity;
+    return Math.max(0, Number(entry.available) || 0);
+}
+
 // ===== ADD TO CART =====
 function addToCart(p, qty, variant) {
     const key = p.id + (variant ? '_v' + variant.id : '');
+    const onDemand = variant ? !!variant.on_demand : false;
+    const available = variant ? Number(variant.available) : null;
+    const cap = variant && !onDemand ? Math.max(0, available || 0) : Infinity;
     const existing = cart.find(x => x.key === key);
     if (existing) {
-        existing.qty += qty;
+        const next = Math.min(existing.qty + qty, cap);
+        if (next < existing.qty + qty) showToast(`Solo ${cap} unidades disponibles`, 'info');
+        existing.qty = Math.max(1, next);
+        // Refresh the cached availability in case config reloaded.
+        existing.available = available;
+        existing.onDemand = onDemand;
     } else {
         const cat = p.category || p.category_slug || '';
         cart.push({
             key, id: p.id, name: p.name, category: cat,
             price_detal: Number(p.price_detal), price_mayor: Number(p.price_mayor), min_mayor: p.min_mayor,
-            qty,
+            qty: Math.min(qty, cap),
             variantId: variant ? variant.id : null,
             variantLabel: variant ? variant.label : null,
             variantImage: variant ? variant.image : null,
+            available, onDemand,
         });
     }
     saveCart();
@@ -442,7 +460,14 @@ function renderCart() {
 function changeQty(key, delta) {
     const item = cart.find(x => x.key === key);
     if (!item) return;
-    item.qty = Math.max(1, item.qty + delta);
+    const cap = variantCap(item);
+    const target = item.qty + delta;
+    if (delta > 0 && target > cap) {
+        showToast(`Solo ${cap} unidades disponibles`, 'info');
+        item.qty = cap;
+    } else {
+        item.qty = Math.max(1, target);
+    }
     saveCart();
     renderCart();
 }
@@ -487,7 +512,7 @@ function openDetailModal(id) {
                 ${p.variants.map((v, i) => {
                     // "Bajo pedido" (on_demand) variants are always available, ignoring stock.
                     const onDemand = !!v.on_demand;
-                    const agotado = !onDemand && Number(v.stock) <= 0;
+                    const agotado = !onDemand && Number(v.available) <= 0;
                     return `
                     <button ${agotado ? 'disabled' : `onclick="selectDetailVariant(${i}, this)"`} id="variant-${i}"
                         class="relative flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 border-gray-200 w-20 transition-all ${agotado ? 'opacity-60 cursor-not-allowed' : 'hover:border-brand-pink cursor-pointer'}"
@@ -586,7 +611,7 @@ function setDetailMainImage(btn, src) {
 
 function selectDetailVariant(i, btn) {
     const v = detailProduct && detailProduct.variants ? detailProduct.variants[i] : null;
-    if (!v || (!v.on_demand && Number(v.stock) <= 0)) return; // agotado / inválido: no seleccionable (bajo pedido siempre disponible)
+    if (!v || (!v.on_demand && Number(v.available) <= 0)) return; // agotado / inválido: no seleccionable (bajo pedido siempre disponible)
     detailVariant = v;
     document.getElementById('detail-modal').querySelectorAll('[id^="variant-"]').forEach(el => {
         el.classList.remove('border-brand-pink');
@@ -601,7 +626,17 @@ function selectDetailVariant(i, btn) {
 }
 
 function changeDetailQty(delta) {
-    detailQty = Math.max(1, detailQty + delta);
+    // Cap against the selected real-stock variant; unlimited otherwise.
+    const cap = detailVariant && !detailVariant.on_demand
+        ? Math.max(0, Number(detailVariant.available) || 0)
+        : Infinity;
+    const target = detailQty + delta;
+    if (delta > 0 && target > cap) {
+        showToast(`Solo ${cap} unidades disponibles`, 'info');
+        detailQty = Math.max(1, cap);
+    } else {
+        detailQty = Math.max(1, target);
+    }
     const el = document.getElementById('detail-qty-display');
     if (el) el.textContent = detailQty;
 }
@@ -821,11 +856,29 @@ async function submitOrder() {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
+            if (err.soldOut) {
+                // Everything the customer picked sold out in the meantime.
+                showToast(err.error || 'Estos productos se agotaron. Actualizamos la disponibilidad.', 'info');
+                await initApp(); // refresh availability so the catalog reflects reality
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> Confirmar Pedido';
+                }
+                return;
+            }
             throw new Error(err.error || 'Error al enviar');
         }
 
+        // Use the server's (possibly auto-adjusted) items/totals so the receipt
+        // matches what was actually reserved.
+        const data = await res.json().catch(() => ({}));
+        const finalItems = Array.isArray(data.items) ? data.items : itemsWithPrice;
+        const finalSubtotal = (data.subtotal != null) ? Number(data.subtotal) : total;
+        const finalGrand = (data.grand != null) ? Number(data.grand) : grand;
+        const adjustments = Array.isArray(data.adjustments) ? data.adjustments : [];
+
         closeCheckout();
-        showSuccessModal(itemsWithPrice, total, delivery, gift, grand, orderNum);
+        showSuccessModal(finalItems, finalSubtotal, delivery, gift, finalGrand, orderNum, adjustments);
         cart = [];
         saveCart();
         updateCartBadge();
@@ -840,8 +893,27 @@ async function submitOrder() {
 }
 
 // ===== SUCCESS MODAL =====
-function showSuccessModal(items, subtotal, delivery, gift, grand, orderNum) {
+function showSuccessModal(items, subtotal, delivery, gift, grand, orderNum, adjustments) {
     document.getElementById('success-order-num').textContent = '#' + orderNum;
+
+    // Clear, explicit notice when stock forced us to auto-adjust quantities.
+    const adjustEl = document.getElementById('success-adjust');
+    if (adjustEl) {
+        if (adjustments && adjustments.length) {
+            adjustEl.innerHTML = `
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 text-left">
+                    <div class="text-amber-800 font-bold text-sm mb-1">⚠️ Ajustamos tu pedido por disponibilidad</div>
+                    <ul class="text-amber-700 text-xs space-y-0.5">
+                        ${adjustments.map(a => `<li>• <strong>${a.name}</strong>: de ${a.from} a ${a.to} ${Number(a.to) === 1 ? 'unidad' : 'unidades'}</li>`).join('')}
+                    </ul>
+                    <div class="text-amber-600 text-[11px] mt-1">Actualizamos el total según lo disponible.</div>
+                </div>`;
+            adjustEl.classList.remove('hidden');
+        } else {
+            adjustEl.innerHTML = '';
+            adjustEl.classList.add('hidden');
+        }
+    }
 
     document.getElementById('success-items').innerHTML = items.map(item => `
         <div class="flex justify-between items-center gap-2 py-1 border-b border-gray-100 last:border-0">

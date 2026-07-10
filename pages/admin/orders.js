@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/admin/AdminLayout'
 
-const STATUS_LABELS = { nuevo: '🔵 Nuevo', procesando: '🟡 Procesando', listo: '🟢 Listo', enviado: '✅ Enviado' }
-const STATUS_COLORS = { nuevo: '#dbeafe', procesando: '#fef9c3', listo: '#dcfce7', enviado: '#f3f4f6' }
+const STATUS_LABELS = { nuevo: '🔵 Nuevo', procesando: '🟡 Procesando', listo: '🟢 Listo', enviado: '✅ Enviado', cancelado: '❌ Cancelado' }
+const STATUS_COLORS = { nuevo: '#dbeafe', procesando: '#fef9c3', listo: '#dcfce7', enviado: '#f3f4f6', cancelado: '#fee2e2' }
 
 function OrderCard({ order, onUpdate, thumbMap }) {
   const [expanded, setExpanded] = useState(false)
@@ -98,6 +98,7 @@ function OrderCard({ order, onUpdate, thumbMap }) {
               <option value="procesando">🟡 Procesando</option>
               <option value="listo">🟢 Listo para entregar</option>
               <option value="enviado">✅ Enviado</option>
+              <option value="cancelado">❌ Cancelado</option>
             </select>
           </div>
 
@@ -162,6 +163,7 @@ export default function OrdersPage() {
     { value: 'procesando', label: '🟡 En proceso' },
     { value: 'listo', label: '🟢 Listo' },
     { value: 'enviado', label: '✅ Enviado' },
+    { value: 'cancelado', label: '❌ Cancelado' },
   ]
 
   return (

@@ -12,11 +12,60 @@ export default async function handler(req, res) {
   const {
     orderNum, customerName, customerPhone,
     payment, deliveryType, deliveryLabel, deliveryInfo,
-    items, subtotal, deliveryCost, gift, giftRecipient, giftMsg, giftDetails, grand, bcvRate,
+    deliveryCost, gift, giftRecipient, giftMsg, giftDetails, bcvRate,
   } = req.body;
+  // Mutable: reservation may auto-adjust quantities and therefore totals.
+  let { items, subtotal, grand } = req.body;
 
   if (!orderNum || !items?.length) {
     return res.status(400).json({ error: 'Datos incompletos' });
+  }
+
+  // ===== STOCK RESERVATION =====
+  // Hold real-stock variant units so nobody else can buy them while the order is
+  // reviewed. "Bajo pedido" (on_demand) variants and products without a variant
+  // are unlimited and untouched. If stock ran out between the customer's pick and
+  // this request, we auto-adjust the quantity to what's available and report the
+  // exact change back so the storefront can warn the customer clearly.
+  // If the RPC is missing/errors (e.g. migration not run yet), we degrade
+  // gracefully: no reservation, order stays "legacy" (stock_status null).
+  let adjustments = [];
+  let stockReserved = false;
+  try {
+    const { data: rsv, error: rsvErr } = await supabaseAdmin.rpc('reserve_order_stock', { p_items: items });
+    if (rsvErr) {
+      console.error('reserve_order_stock error:', rsvErr);
+    } else if (rsv) {
+      stockReserved = true;
+      const grantedMap = {};
+      (rsv.granted || []).forEach(g => { grantedMap[g.variantId] = g.granted; });
+      const priceItem = (it) => {
+        const qty = it.qty;
+        const isMayor = Number(it.min_mayor) < 999 && Number(it.price_mayor) > 0 && qty >= Number(it.min_mayor);
+        const unitPrice = isMayor ? Number(it.price_mayor) : Number(it.price_detal);
+        return { ...it, qty, isMayor, unitPrice, subtotal: unitPrice * qty };
+      };
+      const adjusted = [];
+      for (const it of items) {
+        if (it.variantId != null && Object.prototype.hasOwnProperty.call(grantedMap, it.variantId)) {
+          const granted = grantedMap[it.variantId];
+          if (granted !== it.qty) {
+            adjustments.push({ name: `${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''}`, from: it.qty, to: granted });
+          }
+          if (granted > 0) adjusted.push(priceItem({ ...it, qty: granted }));
+        } else {
+          adjusted.push(it); // unlimited (no variant or "Bajo pedido") — keep as-is
+        }
+      }
+      if (adjusted.length === 0) {
+        return res.status(409).json({ error: 'Lo sentimos, estos productos se agotaron mientras completabas el pedido.', soldOut: true });
+      }
+      items = adjusted;
+      subtotal = adjusted.reduce((s, x) => s + Number(x.subtotal || 0), 0);
+      grand = subtotal + Number(deliveryCost || 0);
+    }
+  } catch (e) {
+    console.error('reservation failed:', e);
   }
 
   const storeEmail = 'trendybyglas@gmail.com';
@@ -204,6 +253,9 @@ export default async function handler(req, res) {
       gift_msg: (gift ? (giftDetails || (giftRecipient ? `Para: ${giftRecipient}` : giftMsg)) : null) || null,
       grand,
       status: 'nuevo',
+      // Only claim "reserved" when the RPC actually held the units; otherwise the
+      // order is legacy (null) and admin transitions won't touch variant stock.
+      stock_status: stockReserved ? 'reserved' : null,
     }).then(({ error }) => { if (error) console.error('Supabase order save error:', error) });
 
     // Telegram alert to the store (same bot as the BCV notices). Sent before the
@@ -231,7 +283,9 @@ export default async function handler(req, res) {
       html: storeHtml,
     });
 
-    return res.status(200).json({ success: true, orderNum });
+    // Return the (possibly adjusted) items/totals so the storefront shows the
+    // final order, plus the exact per-product adjustments to warn the customer.
+    return res.status(200).json({ success: true, orderNum, items, subtotal, grand, adjustments });
   } catch (error) {
     console.error('Resend error:', error);
     return res.status(500).json({ error: 'Error al enviar el email de confirmación' });

@@ -95,25 +95,6 @@ const bodyHTML = `
     </div>
 </section>
 
-<!-- Wholesale Banner -->
-<section class="max-w-7xl mx-auto px-4 pb-4">
-    <div class="bg-white rounded-2xl px-5 py-4 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-brand-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div>
-                <div class="font-bold text-gray-800 text-sm">¡Activa Precios al Mayor!</div>
-                <div class="text-gray-500 text-xs mt-0.5">Desde 6 unidades en productos de cabello con envíos a todo el país.</div>
-            </div>
-        </div>
-        <div id="mayor-status-badge" class="flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium whitespace-nowrap flex-shrink-0">
-            <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
-            Mayor Inactivo
-        </div>
-    </div>
-</section>
-
 <!-- Category Pills (sticky) -->
 <div class="category-pills-bar bg-white/90 backdrop-blur-sm border-b border-pink-100 shadow-sm">
     <div class="max-w-7xl mx-auto px-4">
@@ -468,6 +449,7 @@ const bodyHTML = `
                 <div id="success-order-num" class="inline-block bg-brand-pink/10 text-brand-pink font-bold px-4 py-1.5 rounded-full text-sm">#GLA-0000</div>
             </div>
             <div class="px-8 pb-8">
+                <div id="success-adjust" class="hidden"></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <h3 class="font-bold text-base mb-3 flex items-center gap-2">
