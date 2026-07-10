@@ -59,8 +59,17 @@ export default async function handler(req, res) {
       }
     })
 
+    // Ocultar productos cuya única forma de compra son variantes y todas están
+    // agotadas/reservadas ahora mismo. Productos sin variantes (ilimitados) y los
+    // que tengan alguna variante "Bajo pedido" siguen visibles. Es visibilidad
+    // derivada: NO se borra ni desactiva nada; el producto reaparece solo cuando
+    // se repone stock o se libera una reserva (cancelación).
+    const visibleProducts = products.filter(p =>
+      !(p.variants.length > 0 && p.variants.every(v => !v.on_demand && Number(v.available) <= 0))
+    )
+
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
-    return res.status(200).json({ bcv_rate, categories, products })
+    return res.status(200).json({ bcv_rate, categories, products: visibleProducts })
   } catch (err) {
     console.error('Config API error:', err)
     return res.status(500).json({ error: 'Error cargando configuración' })

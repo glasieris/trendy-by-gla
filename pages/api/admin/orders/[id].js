@@ -40,8 +40,10 @@ export default withAdminAuth(async function handler(req, res) {
 // ===== STOCK RESERVATION RECONCILIATION =====
 // Map each order status to the stock effect it should have applied.
 const EFFECT_BY_STATUS = {
-  nuevo: 'reserved', procesando: 'reserved', listo: 'reserved',
-  enviado: 'shipped', cancelado: 'released',
+  nuevo: 'reserved', procesando: 'reserved',
+  listo: 'shipped',    // descuento definitivo al quedar listo para entregar
+  enviado: 'shipped',  // mismo efecto que "listo": listo->enviado es no-op (sin doble descuento)
+  cancelado: 'released',
 }
 // Per-unit contribution of each effect, relative to the untouched baseline:
 //   reserved -> +1 in reserved, stock unchanged
