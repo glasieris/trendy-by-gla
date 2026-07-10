@@ -307,12 +307,12 @@ function renderProducts() {
     // Copy first so we never mutate the global products array.
     if (currentCategory === 'All') {
         // Default "Todos" order: group by the category menu order
-        // (categories.sort_order, mirrored in categoryList), then by each
-        // product's own sort_order within its category. Unknown categories last.
+        // (categories.sort_order, mirrored in categoryList), then alphabetically
+        // by name within each category (Spanish collation). Unknown categories last.
         const rank = {};
         categoryList.forEach((c, i) => { rank[c.slug] = i; });
         const rk = p => { const r = rank[p.category ?? p.category_slug]; return r === undefined ? Number.MAX_SAFE_INTEGER : r; };
-        list = [...list].sort((a, b) => rk(a) - rk(b) || (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        list = [...list].sort((a, b) => rk(a) - rk(b) || (a.name || '').localeCompare(b.name || '', 'es'));
     } else {
         // Other views keep the alphabetical order (Spanish collation).
         list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
