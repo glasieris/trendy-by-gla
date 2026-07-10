@@ -20,7 +20,26 @@ export default withAdminAuth(async function handler(req, res) {
     for (const img of images ?? []) {
       if (!(img.product_id in firstImage)) firstImage[img.product_id] = img.url
     }
-    const withThumb = data.map(p => ({ ...p, thumb: firstImage[p.id] || p.image_url || null }))
+
+    // Compute which products are auto-hidden from the storefront by stock: they
+    // have buyable variants but ALL are sold out/reserved (available <= 0) and
+    // none is "Bajo pedido". Mirrors the visibility filter in /api/config so the
+    // admin list can flag them without changing any data. Products with no
+    // variants (unlimited) never count as sold out.
+    const { data: variants } = await supabaseAdmin
+      .from('product_variants')
+      .select('product_id, stock, reserved, on_demand, reference_only')
+      .eq('active', true)
+    const buyableByProduct = {}
+    for (const v of variants ?? []) {
+      if (v.reference_only) continue
+      ;(buyableByProduct[v.product_id] ||= []).push(v)
+    }
+    const withThumb = data.map(p => {
+      const vs = buyableByProduct[p.id] || []
+      const sold_out = vs.length > 0 && vs.every(v => !v.on_demand && (Number(v.stock || 0) - Number(v.reserved || 0)) <= 0)
+      return { ...p, thumb: firstImage[p.id] || p.image_url || null, sold_out }
+    })
 
     return res.status(200).json(withThumb)
   }

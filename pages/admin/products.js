@@ -522,16 +522,21 @@ export default function ProductsPage() {
           <div key={cat.slug} style={{ marginBottom:20 }}>
             <h3 style={{ fontSize:14, fontWeight:700, color:'#E91E8C', marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>{cat.label}</h3>
             {items.map(p => (
-              <div key={p.id} style={{ background:'white', borderRadius:14, marginBottom:8, padding:'12px 14px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 2px 6px rgba(0,0,0,0.05)', opacity: p.active ? 1 : 0.5 }}>
+              <div key={p.id} style={{ background:'white', borderRadius:14, marginBottom:8, padding:'12px 14px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 2px 6px rgba(0,0,0,0.05)', opacity: (p.active && !p.sold_out) ? 1 : 0.5 }}>
                 <div style={{ width:52, height:52, borderRadius:10, overflow:'hidden', background:'#fce7f3', flexShrink:0 }}>
                   {p.thumb ?
-                    <img src={p.thumb} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                    <img src={p.thumb} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover', filter: p.sold_out ? 'grayscale(1)' : 'none' }}
                          onError={e => { e.target.style.display='none' }} /> :
                     <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>🛍️</div>}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:600, fontSize:14, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
                   <div style={{ fontSize:12, color:'#6b7280' }}>Detal: <strong style={{ color:'#E91E8C' }}>${Number(p.price_detal).toFixed(2)}</strong> · Mayor: <strong>${Number(p.price_mayor).toFixed(2)}</strong></div>
+                  {p.sold_out && (
+                    <div style={{ display:'inline-block', marginTop:4, fontSize:10, fontWeight:700, color:'#b91c1c', background:'#fee2e2', borderRadius:20, padding:'2px 8px' }}>
+                      🚫 Oculto · agotado
+                    </div>
+                  )}
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
                   <button onClick={() => openEdit(p)} style={{ background:'#fce7f3', border:'none', borderRadius:8, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', color:'#E91E8C' }}>Editar</button>
