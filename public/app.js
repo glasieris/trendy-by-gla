@@ -304,9 +304,19 @@ function renderProducts() {
         : currentCategory === 'Al Mayor' ? products.filter(hasMayoreo)
         : products.filter(p => p.category === currentCategory || p.category_slug === currentCategory);
 
-    // Sort alphabetically by name using Spanish collation (respects accents/ñ).
     // Copy first so we never mutate the global products array.
-    list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+    if (currentCategory === 'All') {
+        // Default "Todos" order: group by the category menu order
+        // (categories.sort_order, mirrored in categoryList), then by each
+        // product's own sort_order within its category. Unknown categories last.
+        const rank = {};
+        categoryList.forEach((c, i) => { rank[c.slug] = i; });
+        const rk = p => { const r = rank[p.category ?? p.category_slug]; return r === undefined ? Number.MAX_SAFE_INTEGER : r; };
+        list = [...list].sort((a, b) => rk(a) - rk(b) || (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    } else {
+        // Other views keep the alphabetical order (Spanish collation).
+        list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+    }
 
     document.getElementById('catalog-title').textContent = currentCategory === 'All' ? 'Todos los Productos'
         : currentCategory === 'Al Mayor' ? 'Precios Al Mayor'
