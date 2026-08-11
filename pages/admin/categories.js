@@ -11,6 +11,9 @@ export default function CategoriesPage() {
   const [form, setForm] = useState({ slug:'', label:'', description:'' })
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
+  const [editingId, setEditingId] = useState(null) // id of the category being edited inline
+  const [editForm, setEditForm] = useState({ label:'', description:'' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
@@ -48,6 +51,30 @@ export default function CategoriesPage() {
     setSaving(false)
     if (res.ok) { showToast('Categoria creada'); setAdding(false); setForm({ slug:'', label:'', description:'' }); fetchCats() }
     else { const d = await res.json(); showToast(d.error || 'Error') }
+  }
+
+  function startEdit(cat) {
+    setEditingId(cat.id)
+    setEditForm({ label: cat.label || '', description: cat.description || '' })
+  }
+  function cancelEdit() { setEditingId(null) }
+
+  // Update only label + description. The slug is intentionally NOT editable: it's
+  // the key products reference (products_category_slug_fkey), so changing it would
+  // orphan every product in the category. label/description are display-only and
+  // read from this same table everywhere, so the change propagates automatically.
+  async function saveEdit(cat) {
+    if (!editForm.label.trim()) return showToast('El nombre es requerido')
+    setSavingEdit(true)
+    const updates = { label: editForm.label.trim(), description: editForm.description }
+    setCats(prev => prev.map(c => c.id === cat.id ? { ...c, ...updates } : c)) // optimistic
+    const res = await fetch(`/api/admin/categories/${cat.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    setSavingEdit(false)
+    if (res.ok) { showToast('Categoria actualizada'); setEditingId(null); fetchCats() }
+    else { const d = await res.json(); showToast(d.error || 'Error'); fetchCats() }
   }
 
   async function handleDelete(cat) {
@@ -114,22 +141,52 @@ export default function CategoriesPage() {
             <button onClick={() => move(i, 1)} disabled={i === cats.length - 1} title="Bajar"
               style={{ background:'#fce7f3', border:'none', borderRadius:6, width:30, height:24, cursor: i === cats.length - 1 ? 'not-allowed' : 'pointer', opacity: i === cats.length - 1 ? 0.4 : 1, fontFamily:'inherit', fontSize:13, lineHeight:1 }}>▼</button>
           </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:700, fontSize:15 }}>{cat.label}</div>
-            <div style={{ fontSize:12, color:'#9ca3af', marginTop:2 }}>ID: {cat.slug}{cat.description ? ' - ' + cat.description.substring(0,40) : ''}</div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
-              <span style={{ fontSize:12, color:'#6b7280' }}>📦 Empaque:</span>
-              <select value={cat.packaging_id ?? ''} onChange={e => setCatPackaging(cat, e.target.value)}
-                style={{ border:'1.5px solid #fce7f3', borderRadius:8, padding:'4px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none', background:'white', cursor:'pointer' }}>
-                <option value="">Sin empaque</option>
-                {packaging.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-          </div>
-          <button onClick={() => handleDelete(cat)}
-            style={{ background:'#fef2f2', border:'none', borderRadius:8, padding:'8px 14px', color:'#dc2626', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}>
-            Eliminar
-          </button>
+          {editingId === cat.id ? (
+            <>
+              <div style={{ flex:1, minWidth:0 }}>
+                <label style={{ fontSize:12, fontWeight:600, display:'block', marginBottom:4 }}>Nombre visible</label>
+                <input style={inp} value={editForm.label} onChange={e => setEditForm(f => ({...f, label: e.target.value}))} placeholder="Nombre de la categoria" />
+                <label style={{ fontSize:12, fontWeight:600, display:'block', marginBottom:4 }}>Descripcion</label>
+                <input style={inp} value={editForm.description} onChange={e => setEditForm(f => ({...f, description: e.target.value}))} placeholder="Descripcion para la tienda" />
+                <div style={{ fontSize:11, color:'#9ca3af' }}>ID interno: <strong>{cat.slug}</strong> · no se cambia (los productos dependen de él)</div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+                <button onClick={() => saveEdit(cat)} disabled={savingEdit}
+                  style={{ background:'#E91E8C', color:'white', border:'none', borderRadius:8, padding:'8px 14px', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+                  {savingEdit ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button onClick={cancelEdit}
+                  style={{ background:'#f3f4f6', border:'none', borderRadius:8, padding:'8px 14px', color:'#6b7280', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+                  Cancelar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:15 }}>{cat.label}</div>
+                <div style={{ fontSize:12, color:'#9ca3af', marginTop:2 }}>ID: {cat.slug}{cat.description ? ' - ' + cat.description.substring(0,40) : ''}</div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
+                  <span style={{ fontSize:12, color:'#6b7280' }}>📦 Empaque:</span>
+                  <select value={cat.packaging_id ?? ''} onChange={e => setCatPackaging(cat, e.target.value)}
+                    style={{ border:'1.5px solid #fce7f3', borderRadius:8, padding:'4px 8px', fontSize:12, fontFamily:'Poppins,sans-serif', outline:'none', background:'white', cursor:'pointer' }}>
+                    <option value="">Sin empaque</option>
+                    {packaging.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+                <button onClick={() => startEdit(cat)}
+                  style={{ background:'#fce7f3', border:'none', borderRadius:8, padding:'8px 14px', color:'#E91E8C', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+                  Editar
+                </button>
+                <button onClick={() => handleDelete(cat)}
+                  style={{ background:'#fef2f2', border:'none', borderRadius:8, padding:'8px 14px', color:'#dc2626', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+                  Eliminar
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ))}
     </AdminLayout>
