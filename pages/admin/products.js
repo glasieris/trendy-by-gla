@@ -7,6 +7,32 @@ const EMPTY = { id:'', name:'', category_slug:'Satin', is_hair:false, price_deta
 // Lowercase + strip accents so search matches "corazon" against "Corazón".
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
 
+// Suggest the next free product id for a category so the user doesn't have to
+// invent one. Ids look like a letter-prefix + number (e.g. "s10"): we reuse the
+// most common prefix among that category's existing products (falling back to
+// the slug's initials), then pick maxNumber+1, bumping until it collides with no
+// existing id across ALL categories.
+function suggestId(categorySlug, products) {
+  const parse = id => {
+    const m = String(id || '').match(/^([a-z]*)(\d+)$/i)
+    return m ? { prefix: m[1].toLowerCase(), num: parseInt(m[2], 10) } : null
+  }
+  const parsed = products.filter(p => p.category_slug === categorySlug).map(p => parse(p.id)).filter(Boolean)
+  let prefix
+  if (parsed.length) {
+    const counts = {}
+    parsed.forEach(p => { counts[p.prefix] = (counts[p.prefix] || 0) + 1 })
+    prefix = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
+  } else {
+    prefix = (categorySlug || 'p').toLowerCase().replace(/[^a-z]/g, '').slice(0, 2) || 'p'
+  }
+  const allIds = new Set(products.map(p => String(p.id)))
+  const maxNum = parsed.filter(p => p.prefix === prefix).reduce((mx, p) => Math.max(mx, p.num), 0)
+  let n = maxNum + 1
+  while (allIds.has(prefix + n)) n++
+  return prefix + n
+}
+
 function Toast({ msg, ok }) {
   return msg ? <div style={{ position:'fixed', bottom:90, left:'50%', transform:'translateX(-50%)', background: ok ? '#E91E8C' : '#dc2626', color:'white', padding:'10px 20px', borderRadius:12, fontWeight:600, fontSize:14, zIndex:200, whiteSpace:'nowrap' }}>{msg}</div> : null
 }
@@ -21,6 +47,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('') // real-time filter by product name
   const [editing, setEditing] = useState(null) // null | 'new' | product object
   const [form, setForm] = useState(EMPTY)
+  const [idEdited, setIdEdited] = useState(false) // true once the user overrides the auto-suggested id
   const [productImages, setProductImages] = useState([]) // {id, url, sort_order}[]
   const [productVariants, setProductVariants] = useState([]) // {id, image_url, label, stock}[]
   const [variantEdits, setVariantEdits] = useState({}) // { [image_url]: { label, stock } }
@@ -163,7 +190,12 @@ export default function ProductsPage() {
   }
 
   function openNew() {
-    setForm(EMPTY)
+    // Default to a real category (first in the list) so we never submit a slug
+    // that isn't in `categories` — that would violate products_category_slug_fkey.
+    // Auto-suggest the next free id for that category so the user needn't invent one.
+    const firstCat = categories[0]?.slug || ''
+    setForm({ ...EMPTY, category_slug: firstCat, id: firstCat ? suggestId(firstCat, products) : '' })
+    setIdEdited(false)
     setProductImages([])
     setProductVariants([])
     setVariantEdits({})
@@ -417,8 +449,11 @@ export default function ProductsPage() {
 
         {isNew && (
           <div>
-            <label style={label}>ID del producto (único, sin espacios, ej: s10)</label>
-            <input style={inp} value={form.id} onChange={e => setForm(f => ({...f, id: e.target.value.toLowerCase().replace(/\s/g,'')}))} placeholder="s10" />
+            <label style={label}>ID del producto (se genera solo · puedes cambiarlo)</label>
+            <input style={inp} value={form.id} onChange={e => { setIdEdited(true); setForm(f => ({...f, id: e.target.value.toLowerCase().replace(/\s/g,'')})) }} placeholder="s10" />
+            <div style={{ fontSize:11, color:'#9ca3af', marginTop:-6, marginBottom:10 }}>
+              Sugerido automáticamente según la categoría. Edítalo solo si necesitas un código específico.
+            </div>
           </div>
         )}
 
@@ -426,7 +461,12 @@ export default function ProductsPage() {
         <input style={inp} value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Ej: Scrunchies Satinados" />
 
         <label style={label}>Categoría</label>
-        <select style={{...inp}} value={form.category_slug} onChange={e => setForm(f => ({...f, category_slug: e.target.value}))}>
+        <select style={{...inp}} value={form.category_slug} onChange={e => {
+          const slug = e.target.value
+          // When creating and the id is still auto-suggested, re-suggest for the
+          // new category so the prefix/number follow the category the user picked.
+          setForm(f => ({ ...f, category_slug: slug, id: (isNew && !idEdited) ? suggestId(slug, products) : f.id }))
+        }}>
           {categories.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
         </select>
 

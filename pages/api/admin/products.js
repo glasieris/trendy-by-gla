@@ -60,7 +60,14 @@ export default withAdminAuth(async function handler(req, res) {
       provider: provider || null,
       sort_order, active: true
     }).select().single()
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) {
+      // Friendly messages for the two constraints admins hit most when creating:
+      // 23505 = duplicate primary key (id already used), 23503 = category_slug
+      // has no matching row in categories.
+      if (error.code === '23505') return res.status(409).json({ error: `Ya existe un producto con el ID "${id}". Usa otro.` })
+      if (error.code === '23503') return res.status(400).json({ error: `La categoría "${category_slug}" no existe. Selecciónala de la lista.` })
+      return res.status(500).json({ error: error.message })
+    }
     return res.status(201).json(data)
   }
 
